@@ -50,13 +50,14 @@ jobs:
         with:
           context: ./qBittorrent
           file: ./qBittorrent/Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
+          # ,linux/arm/v7
           push: true
           tags: |
             nobody114/qbittorrent:latest
             nobody114/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
-            ghcr.io/gshang2017/qbittorrent:latest
-            ghcr.io/gshang2017/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
+            # ghcr.io/gshang2017/qbittorrent:latest
+            # ghcr.io/gshang2017/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
 
       # - name: Docker Hub Description
       #   uses: peter-evans/dockerhub-description@v3
