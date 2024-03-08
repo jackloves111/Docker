@@ -38,12 +38,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Login to GHCR
-      #   uses: docker/login-action@v2
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -56,14 +50,3 @@ jobs:
           tags: |
             nobody114/qbittorrent:latest
             nobody114/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
-            # ghcr.io/gshang2017/qbittorrent:latest
-            # ghcr.io/gshang2017/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
-
-      # - name: Docker Hub Description
-      #   uses: peter-evans/dockerhub-description@v3
-      #   with:
-      #     username: ${{ secrets.DOCKER_USERNAME }}
-      #     password: ${{ secrets.DOCKER_PASSWORD }}
-      #     repository: nobody114/qbittorrent
-      #     short-description: qBittorrent:${{ env.QBITTORRENT_VER }},qBittorrent-EE:${{ env.QBITTORRENT_EE_VER }},集成Trackers更新
-      #     readme-filepath: ./qBittorrent/README.md
