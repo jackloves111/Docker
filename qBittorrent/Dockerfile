@@ -40,7 +40,7 @@ ENV UMASK=022
 ENV TZ=Asia/Shanghai
 ENV QB_WEBUI_PORT=8989
 ENV QB_EE_BIN=false
-ENV QB_TRACKERS_UPDATE_AUTO=true
+ENV QB_TRACKERS_UPDATE_AUTO=false
 ENV QB_TRACKERS_LIST_URL=https://mirror.ghproxy.com/https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt
 ENV ENABLE_CHOWN_DOWNLOADS=true
 ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0
@@ -77,6 +77,6 @@ RUN apk add --no-cache bash curl ca-certificates tzdata python3 shadow qt6-qtbas
 #clear
 && rm -rf /var/cache/apk/* /tmp/*
 
-VOLUME /Downloads /config
+VOLUME /video /config
 EXPOSE 8989 6881 6881/udp
 ENTRYPOINT [ "/init" ]
