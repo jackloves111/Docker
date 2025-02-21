@@ -50,5 +50,5 @@ jobs:
           # tags:nobody114/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
           push: true
           tags: |
-            nobody114/qb:latest
-            nobody114/qb:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
+            nobody114/qbittorrent:latest
+            nobody114/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
