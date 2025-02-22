@@ -45,9 +45,6 @@ jobs:
           context: ./qBittorrent
           file: ./qBittorrent/Dockerfile
           platforms: linux/amd64,linux/arm64
-          # ,linux/arm/v7
-          # tags:nobody114/qbittorrent:latest
-          # tags:nobody114/qbittorrent:${{ env.QBITTORRENT_VER }}-${{ env.QBITTORRENT_EE_VER }}
           push: true
           tags: |
             nobody114/qbittorrent:latest
