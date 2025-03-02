@@ -1,5 +1,5 @@
 #compiling qB
-FROM ghcr.io/gshang2017/libtorrent:1 as compilingqB
+FROM ghcr.io/gshang2017/libtorrent:1.2.19 as compilingqB
 
 ARG QBITTORRENT_VER=4.6.7
 ARG QBITTORRENT_EE_VER=4.6.7.10
