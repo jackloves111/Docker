@@ -1,8 +1,8 @@
 #compiling qB
 FROM ghcr.io/gshang2017/libtorrent:1 as compilingqB
 
-ARG QBITTORRENT_VER=4.6.6
-ARG QBITTORRENT_EE_VER=4.6.6.10
+ARG QBITTORRENT_VER=4.6.7
+ARG QBITTORRENT_EE_VER=4.6.7.10
 
 RUN apk add --no-cache ca-certificates cmake build-base boost-dev wget samurai qt6-qttools-dev \
 #qBittorrent-Enhanced-Edition
@@ -49,7 +49,7 @@ COPY --chmod=755 root /
 COPY --from=compilingqB --chmod=755 /qbittorrent /
 
 #install bash curl tzdata python3 shadow qt6
-RUN apk add --no-cache bash curl ca-certificates tzdata python3 shadow qt6-qtbase-sqlite-6.6.0-r0 qt6-qtbase-6.6.0-r0 wget \
+RUN apk add --no-cache bash curl ca-certificates tzdata python3 shadow qt6-qtbase-sqlite qt6-qtbase qt6-qt5compat wget \
 #install s6-overlay
 && if [ "$(uname -m)" = "x86_64" ];then s6_arch=x86_64;elif [ "$(uname -m)" = "aarch64" ];then s6_arch=aarch64;elif [ "$(uname -m)" = "armv7l" ];then s6_arch=arm; fi \
 && wget -P /tmp https://github.com/just-containers/s6-overlay/releases/download/v${S6_VER}/s6-overlay-noarch.tar.xz \
