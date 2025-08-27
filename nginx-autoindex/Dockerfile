@@ -9,7 +9,7 @@ RUN echo "fs.file-max = 65535" > /etc/sysctl.conf \
 
 WORKDIR /www
 
-COPY file.conf /etc/nginx/http.d/
+COPY file.conf /etc/nginx/http.d/default.conf
 COPY .theme /usr/share/nginx/theme
 
 EXPOSE 80
