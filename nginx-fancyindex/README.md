@@ -1,6 +1,6 @@
 ## 参考github项目：
 
-[自带fancyindex的docker镜像](https://github.com/shiharuharu/docker-nginx-autoindex)
+[自带fancyindex的docker镜像](https://github.com/shiharuharu/docker-nginx-fancyindex)
 
 [Fancyindex-主题](https://github.com/alehaa/nginx-fancyindex-flat-theme)
 

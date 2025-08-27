@@ -1,11 +1,11 @@
-name: nginx-autoindex
+name: nginx-fancyindex
 
 on:
   push:
     paths:
-    - 'nginx-autoindex/Dockerfile'
-    - 'nginx-autoindex/file.conf'
-    - 'nginx-autoindex/.theme/**'
+    - 'nginx-fancyindex/Dockerfile'
+    - 'nginx-fancyindex/file.conf'
+    - 'nginx-fancyindex/.theme/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: 'Set env'
         run: |
           echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-          echo "NGINX_VER=$(echo `grep -n "FROM alpine:" nginx-autoindex/Dockerfile`|awk -F: '{print $2}'|tr -d ' ')" >> $GITHUB_ENV
+          echo "NGINX_VER=$(echo `grep -n "FROM alpine:" nginx-fancyindex/Dockerfile`|awk -F: '{print $2}'|tr -d ' ')" >> $GITHUB_ENV
 
       - name: Set up QEMU
         id: qemu
@@ -42,10 +42,10 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./nginx-autoindex
-          file: ./nginx-autoindex/Dockerfile
+          context: ./nginx-fancyindex
+          file: ./nginx-fancyindex/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            nobody114/nginx-autoindex:latest
-            nobody114/nginx-autoindex:${{ env.BUILD_DATE }}
+            nobody114/nginx-fancyindex:latest
+            nobody114/nginx-fancyindex:${{ env.BUILD_DATE }}
