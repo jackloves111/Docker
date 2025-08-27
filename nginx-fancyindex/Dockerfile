@@ -5,11 +5,12 @@ RUN echo "fs.file-max = 65535" > /etc/sysctl.conf \
     && sed -i "s/user nginx;/user root;/g" /etc/nginx/nginx.conf \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log \
+    && rm -rf /etc/nginx/http.d/* \
     && mkdir /www
 
 WORKDIR /www
 
-COPY file.conf /etc/nginx/http.d/default.conf
+COPY file.conf /etc/nginx/http.d/file.conf
 COPY .theme /www/.theme
 
 EXPOSE 80
