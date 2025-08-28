@@ -11,10 +11,12 @@ RUN echo "fs.file-max = 65535" > /etc/sysctl.conf \
 WORKDIR /www
 
 COPY file.conf /etc/nginx/http.d/file.conf
-COPY .theme /www/.theme
+COPY .theme /tmp/.theme
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
-VOLUME ["/www/config"]
+VOLUME ["/www"]
 
-ENTRYPOINT ["/usr/sbin/nginx"]
-CMD ["-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
