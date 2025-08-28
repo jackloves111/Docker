@@ -1,3 +1,8 @@
+## 项目修改
+1. 集成nginx配置和主题文件
+2. 主题进行了图标优化和系统汉化
+3. 使用Docker安装
+
 ## 参考github项目：
 
 [自带fancyindex的docker镜像](https://github.com/shiharuharu/docker-nginx-fancyindex)
@@ -14,3 +19,6 @@ docker run -d \
  -v /path/to/your/www:/www/config \
 nobody114/nginx-fancyindex:latest
 ```
+
+## 截图
+![预览](nginx-fancyindex/.theme/主题预览截图-screenshot.png)
