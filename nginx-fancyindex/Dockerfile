@@ -14,6 +14,7 @@ COPY file.conf /etc/nginx/http.d/file.conf
 COPY .theme /www/.theme
 
 EXPOSE 80
+VOLUME ["/www/config"]
 
 ENTRYPOINT ["/usr/sbin/nginx"]
 CMD ["-g", "daemon off;"]
