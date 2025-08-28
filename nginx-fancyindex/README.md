@@ -21,4 +21,4 @@ nobody114/nginx-fancyindex:latest
 ```
 
 ## 截图
-![预览](nginx-fancyindex/.theme/主题预览截图-screenshot.png)
+![预览](.theme/主题预览截图-screenshot.png)
