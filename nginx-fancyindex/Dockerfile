@@ -6,17 +6,15 @@ RUN echo "fs.file-max = 65535" > /etc/sysctl.conf \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log \
     && rm -rf /etc/nginx/http.d/* \
-    && mkdir /www
+    && mkdir /www \
+    && mkdir -p /usr/share/nginx/.theme
 
 WORKDIR /www
 
 COPY file.conf /etc/nginx/http.d/file.conf
-COPY .theme /tmp/.theme
-COPY entrypoint.sh /entrypoint.sh
-
-RUN chmod +x /entrypoint.sh
+COPY .theme /usr/share/nginx/.theme
 
 EXPOSE 80
 VOLUME ["/www"]
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
