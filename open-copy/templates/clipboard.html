@@ -1,0 +1,70 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <link rel="icon" href="../static/images/Clipboard.png" />
+    <title>Clipboard</title>  
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>  
+    <script>  
+        var socket = io.connect('http://' + document.domain + ':' + location.port);  
+        socket.on('content_updated', function(msg) {  
+            document.getElementById('content').value = msg.content;  
+        });  
+    </script>  
+</head>  
+<style>  
+    body {  
+        font-family: 'Arial', sans-serif;  
+        background-color: #f4f4f9;  
+        color: #333;  
+        padding: 20px;  
+        margin: 0;  
+    }  
+    h1 {  
+        color: #6a5acd;  
+        text-align: center;  
+    }  
+    h3 {  
+        color: #6a5acd;  
+        text-align: center;  
+    }
+    textarea {  
+        width: 90%;  
+        padding: 12px 20px;  
+        margin: 8px 0;  
+        display: inline-block;  
+        border: 1px solid #ccc;  
+        border-radius: 4px;  
+        box-sizing: border-box;  
+        font-size: 16px;  
+        background-color: #fff;  
+        height: 80vh;  
+    }  
+    form {  
+        text-align: center;  
+    }  
+</style>  
+<body>  
+    <h1>共享剪切板</h1>  
+    <h3>输入结束后停留3秒自动更新</h3>  
+    <form id="clipboardForm" method="post">  
+        <textarea id="content" name="content">{{ content }}</textarea>  
+    </form>  
+    <script>  
+        let timeout = null; // 用于存储延时器的ID  
+        const delay = 3000; // 延时时间，单位为毫秒，可以根据需要调整  
+      
+        document.getElementById('content').addEventListener('input', function() {  
+            // 每次触发input事件时，清除之前的延时器  
+            clearTimeout(timeout);  
+      
+            // 设置一个新的延时器，当用户停止输入后延时触发表单提交  
+            timeout = setTimeout(function() {  
+                // 当文本内容变化并且过了指定的延时时间后，自动提交表单  
+                document.getElementById('clipboardForm').submit();  
+            }, delay);  
+        });  
+    </script>
+</body>  
+</html>

@@ -1,0 +1,19 @@
+# 使用官方Python运行环境作为父镜像，基于Alpine Linux  
+FROM python:3.8-alpine  
+  
+# 设置工作目录  
+# WORKDIR /config
+  
+# 将当前目录下的所有文件复制到工作目录  
+COPY . .  
+  
+# 安装Flask  
+RUN pip3 install -r requirements.txt
+
+# api+后端web，软件管理后台
+EXPOSE 8000
+# 剪切板clipboard后台
+
+# 使用sh脚本同时运行
+CMD python clipboard.py
+
