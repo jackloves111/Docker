@@ -1,0 +1,51 @@
+name: env-editor
+
+on:
+  push:
+    paths:
+      - 'env-editor/**'
+      - '.github/workflows/env-editor.yml'
+  workflow_dispatch:
+
+jobs:
+  job1:
+    name: buildx tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set env
+        run: |
+          echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          echo "PYTHON_VER=$(awk -F: '/^FROM python:/ {print $2}' env-editor/Dockerfile | tr -d ' ')" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: ./env-editor
+          file: ./env-editor/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            nobody114/env-editor:latest
+            nobody114/env-editor:${{ env.BUILD_DATE }}
+            nobody114/env-editor:python-${{ env.PYTHON_VER }}

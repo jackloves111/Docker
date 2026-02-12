@@ -1,0 +1,21 @@
+{
+  "API_TOKEN": "接口访问令牌",
+  "SEARCH_SOURCE": "搜索源（如 themoviedb）",
+  "SEARCH_MULTIPLE_NAME": "按多个名称匹配",
+  "WALLPAPER": "壁纸来源（如 bing）",
+  "COOKIECLOUD_HOST": "CookieCloud 服务地址",
+  "DEBUG": "调试模式开关",
+  "SUBSCRIBE_SEARCH": "订阅内自动搜索",
+  "LOCAL_EXISTS_SEARCH": "本地存在则搜索",
+  "GITHUB_PROXY": "GitHub 代理地址",
+  "PIP_PROXY": "PIP 代理地址",
+  "COOKIECLOUD_KEY": "CookieCloud 访问密钥",
+  "COOKIECLOUD_PASSWORD": "CookieCloud 访问密码",
+  "ANIME_GENREIDS": "动漫类型 ID 列表",
+  "TMDB_IMAGE_DOMAIN": "TMDB 图片域名",
+  "TMDB_API_DOMAIN": "TMDB API 域名",
+  "PROXY_HOST": "代理主机地址",
+  "SITEDATA_REFRESH_INTERVAL": "站点数据刷新间隔（秒）",
+  "SITE_MESSAGE": "站点消息开关",
+  "COOKIECLOUD_ENABLE_LOCAL": "启用本地 CookieCloud"
+}
