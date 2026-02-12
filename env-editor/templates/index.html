@@ -110,6 +110,7 @@
 
       function render() {
         const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PIP_PROXY"]);
+        const AUTO_UPDATE_KEYS = new Set(["MOVIEPILOT_AUTO_UPDATE", "AUTO_UPDATE_RESOURCE"]);
         const rows = state.entries;
         el.tbody.innerHTML = rows.map(e => {
           const idAttr = (e.id !== undefined && e.id !== null) ? `data-id="${e.id}"` : `data-id=""`;
@@ -118,9 +119,18 @@
           const value = escapeHtml(e.value || "");
           const desc = escapeHtml(e.desc || "");
           const important = IMPORTANT_KEYS.has(e.key || "");
+          const isAutoUpdate = AUTO_UPDATE_KEYS.has(e.key || "");
           const descHtml = important
             ? `<span class="badge bg-danger me-2">重要</span><span class="text-danger fw-semibold">${desc}</span>`
             : `<span class="text-secondary">${desc}</span>`;
+
+          let valueHtml;
+          if (isAutoUpdate) {
+            valueHtml = `<div class="mono text-secondary">${value}</div><input type="hidden" data-field="value" value="${value}" />`;
+          } else {
+            valueHtml = `<input class="form-control mono" data-field="value" value="${value}" />`;
+          }
+
           return `
             <tr ${idAttr} ${quoteAttr}>
               <td>
@@ -130,7 +140,7 @@
                 <div>${descHtml}</div>
               </td>
               <td>
-                <input class="form-control mono" data-field="value" value="${value}" />
+                ${valueHtml}
               </td>
             </tr>
           `;
