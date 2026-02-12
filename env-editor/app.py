@@ -144,11 +144,35 @@ def _read_env_file(path: Path) -> tuple[list[str], list[EnvEntry]]:
 
 def _atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=str(path.parent)) as tf:
-        tf.write(content)
-        tf.flush()
-        tmp_name = tf.name
-    Path(tmp_name).replace(path)
+    desired_mode: Optional[int] = None
+    try:
+        desired_mode = path.stat().st_mode & 0o777
+    except FileNotFoundError:
+        desired_mode = None
+
+    tmp_name: Optional[str] = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", newline="\n", delete=False, dir=str(path.parent)
+        ) as tf:
+            tf.write(content)
+            tf.flush()
+            tmp_name = tf.name
+        if desired_mode is not None:
+            try:
+                os.chmod(tmp_name, desired_mode)
+            except OSError:
+                pass
+        try:
+            Path(tmp_name).replace(path)
+        except OSError as e:
+            abort(500, description=f"Write failed: {e.strerror or 'os error'}")
+    finally:
+        if tmp_name is not None:
+            try:
+                Path(tmp_name).unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def _update_env_file(path: Path, payload: dict[str, Any]) -> None:
@@ -215,6 +239,7 @@ def _update_env_file(path: Path, payload: dict[str, Any]) -> None:
 
 
     content = "\n".join(raw_lines).rstrip("\n") + "\n"
+    _atomic_write(path, content)
 
 
 app = Flask(__name__)
