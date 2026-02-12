@@ -32,12 +32,20 @@
                 </div>
                 <div class="col-12 col-md-8"></div>
                 <div class="col-12">
-                  <div class="alert alert-warning d-flex align-items-center gap-2 py-2">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" id="autoUpdateSwitch">
-                      <label class="form-check-label" for="autoUpdateSwitch">开启软件自动更新</label>
+                  <div class="d-flex flex-column flex-md-row gap-2">
+                    <div class="alert alert-warning d-flex align-items-center gap-2 py-2 flex-grow-1 mb-0">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoUpdateSwitch">
+                        <label class="form-check-label" for="autoUpdateSwitch">开启软件自动更新</label>
+                      </div>
+                      <div id="autoUpdateStatus" class="small"></div>
                     </div>
-                    <div id="autoUpdateStatus" class="small"></div>
+                    <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 mb-0" style="min-width: 140px;">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="advancedSwitch">
+                        <label class="form-check-label" for="advancedSwitch">高级配置</label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -82,7 +90,7 @@
             <h5 class="modal-title" id="warningModalLabel">⚠️ 警告</h5>
           </div>
           <div class="modal-body text-danger fw-bold bg-light">
-            警告：请勿修改不熟悉的配置，否则可能导致系统错误或数据损失，相关后果需自行承担。
+            警告：请勿修改不熟悉的配置【请勿开启高级配置】，否则可能导致系统错误或数据损失，相关后果需自行承担。
           </div>
           <div class="modal-footer bg-light">
             <button type="button" class="btn btn-danger w-100" data-bs-dismiss="modal">确定</button>
@@ -100,6 +108,7 @@
         entries: [],
         nextClientId: 1,
         autoUpdateDesired: false,
+        advancedMode: false,
       };
 
       const el = {
@@ -112,6 +121,7 @@
         reloadBtn: document.getElementById("reloadBtn"),
         autoUpdateSwitch: document.getElementById("autoUpdateSwitch"),
         autoUpdateStatus: document.getElementById("autoUpdateStatus"),
+        advancedSwitch: document.getElementById("advancedSwitch"),
       };
 
       function headers() {
@@ -130,6 +140,12 @@
       function render() {
         const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PIP_PROXY"]);
         const AUTO_UPDATE_KEYS = new Set(["MOVIEPILOT_AUTO_UPDATE", "AUTO_UPDATE_RESOURCE"]);
+        const ADVANCED_KEYS = new Set([
+          "API_TOKEN", "SEARCH_MULTIPLE_NAME", "COOKIECLOUD_HOST", "DEBUG", 
+          "SUBSCRIBE_SEARCH", "LOCAL_EXISTS_SEARCH", "COOKIECLOUD_KEY", 
+          "COOKIECLOUD_PASSWORD", "ANIME_GENREIDS", "SITEDATA_REFRESH_INTERVAL", 
+          "SITE_MESSAGE", "COOKIECLOUD_ENABLE_LOCAL"
+        ]);
         const SPECIAL_OPTIONS = {
           "SEARCH_SOURCE": [
             { val: "themoviedb", label: "themoviedb（TMDB）" },
@@ -174,6 +190,9 @@
           const desc = escapeHtml(e.desc || "");
           const important = IMPORTANT_KEYS.has(e.key || "");
           const isAutoUpdate = AUTO_UPDATE_KEYS.has(e.key || "");
+          const isAdvanced = ADVANCED_KEYS.has(e.key || "");
+          const isDisabled = isAdvanced && !state.advancedMode;
+          const disabledAttr = isDisabled ? "disabled" : "";
           const lowerVal = (e.value || "").toLowerCase();
           const isBool = lowerVal === "true" || lowerVal === "false";
           const descHtml = important
@@ -194,22 +213,22 @@
             
             valueHtml = `
               <div class="d-flex flex-column gap-1">
-                <select class="form-select special-select">
+                <select class="form-select special-select" ${disabledAttr}>
                   ${optionsHtml}
                   <option value="__custom__" ${isCustom ? "selected" : ""}>自定义</option>
                 </select>
-                <input class="form-control mono special-input" data-field="value" value="${value}" style="${isCustom ? '' : 'display:none'}" />
+                <input class="form-control mono special-input" data-field="value" value="${value}" style="${isCustom ? '' : 'display:none'}" ${disabledAttr} />
               </div>
             `;
           } else if (isBool) {
             const checked = lowerVal === "true" ? "checked" : "";
             valueHtml = `
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" data-field="value" ${checked}>
+                <input class="form-check-input" type="checkbox" data-field="value" ${checked} ${disabledAttr}>
               </div>
             `;
           } else {
-            valueHtml = `<input class="form-control mono" data-field="value" value="${value}" />`;
+            valueHtml = `<input class="form-control mono" data-field="value" value="${value}" ${disabledAttr} />`;
           }
 
           return `
@@ -422,6 +441,11 @@
       el.autoUpdateSwitch.addEventListener("change", () => {
         state.autoUpdateDesired = !!el.autoUpdateSwitch.checked;
         renderAutoUpdateStatus();
+      });
+
+      el.advancedSwitch.addEventListener("change", () => {
+        state.advancedMode = !!el.advancedSwitch.checked;
+        render();
       });
 
       (function init() {
