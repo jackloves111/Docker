@@ -233,8 +233,6 @@ def _update_env_file(path: Path, payload: dict[str, Any]) -> None:
         while raw_lines and raw_lines[-1] == "":
             raw_lines.pop()
         if appended_lines:
-            if raw_lines:
-                raw_lines.append("")
             raw_lines.extend(appended_lines)
 
 
