@@ -109,7 +109,7 @@
       }
 
       function render() {
-        const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PROXY_HOST","PIP_PROXY"]);
+        const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PIP_PROXY"]);
         const rows = state.entries;
         el.tbody.innerHTML = rows.map(e => {
           const idAttr = (e.id !== undefined && e.id !== null) ? `data-id="${e.id}"` : `data-id=""`;
