@@ -112,10 +112,25 @@
         const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PIP_PROXY"]);
         const AUTO_UPDATE_KEYS = new Set(["MOVIEPILOT_AUTO_UPDATE", "AUTO_UPDATE_RESOURCE"]);
         const SPECIAL_OPTIONS = {
-          "SEARCH_SOURCE": ["themoviedb", "douban", "bangumi"],
-          "WALLPAPER": ["tmdb", "bing", "mediaserver"],
-          "TMDB_IMAGE_DOMAIN": ["image.tmdb.org", "tmdb.nastool.work"],
-          "TMDB_API_DOMAIN": ["api.themoviedb.org", "api.tmdb.org", "api.nastool.work"]
+          "SEARCH_SOURCE": [
+            { val: "themoviedb", label: "themoviedb（TMDB）" },
+            { val: "douban", label: "douban（豆瓣-不建议）" },
+            { val: "bangumi", label: "bangumi（bangumi-不建议）" }
+          ],
+          "WALLPAPER": [
+            { val: "tmdb", label: "tmdb（TMDB）" },
+            { val: "bing", label: "bing（必应）" },
+            { val: "mediaserver", label: "mediaserver（媒体服务器）" }
+          ],
+          "TMDB_IMAGE_DOMAIN": [
+            { val: "image.tmdb.org", label: "image.tmdb.org（TMDB）" },
+            { val: "tmdb.nastool.work", label: "tmdb.nastool.work（代理-不建议）" }
+          ],
+          "TMDB_API_DOMAIN": [
+            { val: "api.themoviedb.org", label: "api.themoviedb.org（TMDB）" },
+            { val: "api.tmdb.org", label: "api.tmdb.org（TMDB）" },
+            { val: "api.nastool.work", label: "api.nastool.work（代理-不建议）" }
+          ]
         };
         const rows = state.entries;
         el.tbody.innerHTML = rows.map(e => {
@@ -138,9 +153,10 @@
           if (isAutoUpdate) {
             valueHtml = `<div class="mono text-secondary">${value}</div><input type="hidden" data-field="value" value="${value}" />`;
           } else if (specialOpts) {
-            const isCustom = !specialOpts.includes(e.value || "");
+            const matchedOpt = specialOpts.find(opt => opt.val === (e.value || ""));
+            const isCustom = !matchedOpt;
             const optionsHtml = specialOpts.map(opt => 
-              `<option value="${opt}" ${opt === (e.value||"") ? "selected" : ""}>${opt}</option>`
+              `<option value="${opt.val}" ${opt.val === (e.value||"") ? "selected" : ""}>${opt.label}</option>`
             ).join("");
             
             valueHtml = `
