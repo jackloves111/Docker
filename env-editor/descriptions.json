@@ -19,5 +19,7 @@
   "SITE_MESSAGE": "站点消息开关",
   "COOKIECLOUD_ENABLE_LOCAL": "启用本地 CookieCloud",
   "MOVIEPILOT_AUTO_UPDATE": "自动更新软件版本",
-  "AUTO_UPDATE_RESOURCE": "自动更新认证和站点资源包"
+  "AUTO_UPDATE_RESOURCE": "自动更新认证和站点资源包",
+  "DOH_ENABLE": "DNS over HTTPS开关",
+  "PLUGIN_MARKET": "插件市场仓库地址"
 }
