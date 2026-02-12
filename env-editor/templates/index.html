@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MoviePiloT环境变量编辑器</title>
+    <title>MoviePilot环境变量编辑器</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       body { background: #f8fafc; margin: 12px; }
@@ -15,8 +15,8 @@
   <body>
     <nav class="navbar navbar-expand-lg bg-white border-bottom">
       <div class="container-limit">
-        <span class="navbar-brand mb-0 h1">env-editor</span>
-        <span class="text-secondary small">ROOT: {{ env_root }} | 文件名: {{ env_filename }}</span>
+        <span class="navbar-brand mb-0 h1">MoviePilot环境变量编辑器</span>
+        <span class="text-secondary small">目录: {{ env_root }} | 文件名: {{ env_filename }}</span>
       </div>
     </nav>
 
@@ -35,7 +35,7 @@
                   <div class="alert alert-warning d-flex align-items-center gap-2 py-2">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="autoUpdateSwitch">
-                      <label class="form-check-label" for="autoUpdateSwitch">自动更新</label>
+                      <label class="form-check-label" for="autoUpdateSwitch">开启软件自动更新</label>
                     </div>
                     <div id="autoUpdateStatus" class="small"></div>
                   </div>
