@@ -130,6 +130,20 @@
             { val: "api.themoviedb.org", label: "api.themoviedb.org（TMDB）" },
             { val: "api.tmdb.org", label: "api.tmdb.org（TMDB）" },
             { val: "api.nastool.work", label: "api.nastool.work（代理-不建议）" }
+          ],
+          "GITHUB_PROXY": [
+            { val: "https://ghfast.top/", label: "https://ghfast.top/" }
+          ],
+          "PIP_PROXY": [
+            { val: "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple", label: "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" },
+            { val: "https://pypi.mirrors.ustc.edu.cn/simple", label: "https://pypi.mirrors.ustc.edu.cn/simple" },
+            { val: "https://mirrors.pku.edu.cn/pypi/web/simple", label: "https://mirrors.pku.edu.cn/pypi/web/simple" },
+            { val: "https://mirrors.aliyun.com/pypi/simple", label: "https://mirrors.aliyun.com/pypi/simple" },
+            { val: "https://mirrors.cloud.tencent.com/pypi/simple", label: "https://mirrors.cloud.tencent.com/pypi/simple" },
+            { val: "https://mirrors.163.com/pypi/simple", label: "https://mirrors.163.com/pypi/simple" },
+            { val: "https://pypi.doubanio.com/simple", label: "https://pypi.doubanio.com/simple" },
+            { val: "https://mirrors.hust.edu.cn/pypi/web/simple", label: "https://mirrors.hust.edu.cn/pypi/web/simple" },
+            { val: "https://mirrors.bfsu.edu.cn/pypi/web/simple", label: "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
           ]
         };
         const rows = state.entries;
@@ -376,6 +390,7 @@
           const container = sel.parentNode;
           const input = container.querySelector(".special-input");
           if (sel.value === "__custom__") {
+            input.value = "";
             input.style.display = "";
             input.focus();
           } else {
