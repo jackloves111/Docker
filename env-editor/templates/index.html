@@ -120,6 +120,8 @@
           const desc = escapeHtml(e.desc || "");
           const important = IMPORTANT_KEYS.has(e.key || "");
           const isAutoUpdate = AUTO_UPDATE_KEYS.has(e.key || "");
+          const lowerVal = (e.value || "").toLowerCase();
+          const isBool = lowerVal === "true" || lowerVal === "false";
           const descHtml = important
             ? `<span class="badge bg-danger me-2">重要</span><span class="text-danger fw-semibold">${desc}</span>`
             : `<span class="text-secondary">${desc}</span>`;
@@ -127,6 +129,13 @@
           let valueHtml;
           if (isAutoUpdate) {
             valueHtml = `<div class="mono text-secondary">${value}</div><input type="hidden" data-field="value" value="${value}" />`;
+          } else if (isBool) {
+            const checked = lowerVal === "true" ? "checked" : "";
+            valueHtml = `
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" data-field="value" ${checked}>
+              </div>
+            `;
           } else {
             valueHtml = `<input class="form-control mono" data-field="value" value="${value}" />`;
           }
@@ -216,9 +225,15 @@
           const id = idRaw === "" ? null : Number(idRaw);
           const quote = tr.getAttribute("data-quote") || "none";
           const valueInput = tr.querySelector('input[data-field="value"]');
+          let val = "";
+          if (valueInput.type === "checkbox") {
+            val = valueInput.checked ? "True" : "False";
+          } else {
+            val = valueInput.value || "";
+          }
           entries.push({
             id: id,
-            value: valueInput.value || "",
+            value: val,
             quote: quote,
           });
         }
