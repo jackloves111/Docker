@@ -111,6 +111,12 @@
       function render() {
         const IMPORTANT_KEYS = new Set(["GITHUB_PROXY","PIP_PROXY"]);
         const AUTO_UPDATE_KEYS = new Set(["MOVIEPILOT_AUTO_UPDATE", "AUTO_UPDATE_RESOURCE"]);
+        const SPECIAL_OPTIONS = {
+          "SEARCH_SOURCE": ["themoviedb", "douban", "bangumi"],
+          "WALLPAPER": ["tmdb", "bing", "mediaserver"],
+          "TMDB_IMAGE_DOMAIN": ["image.tmdb.org", "tmdb.nastool.work"],
+          "TMDB_API_DOMAIN": ["api.themoviedb.org", "api.tmdb.org", "api.nastool.work"]
+        };
         const rows = state.entries;
         el.tbody.innerHTML = rows.map(e => {
           const idAttr = (e.id !== undefined && e.id !== null) ? `data-id="${e.id}"` : `data-id=""`;
@@ -127,8 +133,25 @@
             : `<span class="text-secondary">${desc}</span>`;
 
           let valueHtml;
+          const specialOpts = SPECIAL_OPTIONS[e.key || ""];
+
           if (isAutoUpdate) {
             valueHtml = `<div class="mono text-secondary">${value}</div><input type="hidden" data-field="value" value="${value}" />`;
+          } else if (specialOpts) {
+            const isCustom = !specialOpts.includes(e.value || "");
+            const optionsHtml = specialOpts.map(opt => 
+              `<option value="${opt}" ${opt === (e.value||"") ? "selected" : ""}>${opt}</option>`
+            ).join("");
+            
+            valueHtml = `
+              <div class="d-flex flex-column gap-1">
+                <select class="form-select special-select">
+                  ${optionsHtml}
+                  <option value="__custom__" ${isCustom ? "selected" : ""}>自定义</option>
+                </select>
+                <input class="form-control mono special-input" data-field="value" value="${value}" style="${isCustom ? '' : 'display:none'}" />
+              </div>
+            `;
           } else if (isBool) {
             const checked = lowerVal === "true" ? "checked" : "";
             valueHtml = `
@@ -329,6 +352,21 @@
       el.reloadBtn.addEventListener("click", async () => {
         if (!state.currentPath) return;
         await loadEnv(state.currentPath);
+      });
+
+      el.tbody.addEventListener("change", (e) => {
+        if (e.target.classList.contains("special-select")) {
+          const sel = e.target;
+          const container = sel.parentNode;
+          const input = container.querySelector(".special-input");
+          if (sel.value === "__custom__") {
+            input.style.display = "";
+            input.focus();
+          } else {
+            input.value = sel.value;
+            input.style.display = "none";
+          }
+        }
       });
 
       el.autoUpdateSwitch.addEventListener("change", () => {
