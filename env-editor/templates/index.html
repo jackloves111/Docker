@@ -74,6 +74,25 @@
       </div>
     </main>
 
+    <!-- Warning Modal -->
+    <div class="modal fade" id="warningModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="warningModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger shadow-lg">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="warningModalLabel">⚠️ 警告</h5>
+          </div>
+          <div class="modal-body text-danger fw-bold bg-light">
+            警告：请勿修改不熟悉的配置，否则可能导致系统错误或数据损失，相关后果需自行承担。
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-danger w-100" data-bs-dismiss="modal">确定</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
       const state = {
         files: [],
@@ -407,6 +426,13 @@
 
       (function init() {
         loadFiles();
+        // Show warning modal
+        try {
+          const warningModal = new bootstrap.Modal(document.getElementById('warningModal'));
+          warningModal.show();
+        } catch (e) {
+          console.error("Failed to show warning modal:", e);
+        }
       })();
     </script>
   </body>
