@@ -17,5 +17,7 @@
   "PROXY_HOST": "代理主机地址",
   "SITEDATA_REFRESH_INTERVAL": "站点数据刷新间隔（秒）",
   "SITE_MESSAGE": "站点消息开关",
-  "COOKIECLOUD_ENABLE_LOCAL": "启用本地 CookieCloud"
+  "COOKIECLOUD_ENABLE_LOCAL": "启用本地 CookieCloud",
+  "MOVIEPILOT_AUTO_UPDATE": "自动更新软件版本",
+  "AUTO_UPDATE_RESOURCE": "自动更新认证和站点资源包"
 }
