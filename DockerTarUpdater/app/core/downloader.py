@@ -26,7 +26,7 @@ class Downloader:
             try:
                 logger.info(f"[下载器] 第 {attempt}/{self.max_retries} 次下载尝试...")
 
-                response = requests.get(url, stream=True, timeout=self.timeout)
+                response = requests.get(url, stream=True, timeout=(10, None))
                 response.raise_for_status()
 
                 total_size = int(response.headers.get('content-length', 0))
