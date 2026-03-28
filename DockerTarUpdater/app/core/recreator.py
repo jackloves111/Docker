@@ -1,11 +1,15 @@
-import subprocess
 import logging
 import json
-import re
 
 logger = logging.getLogger(__name__)
 
 class Recreater:
+    def __init__(self):
+        import docker
+        import os
+        socket_path = os.environ.get('DOCKER_SOCKET', '/var/run/docker.sock')
+        self.docker_client = docker.DockerClient(base_url=f'unix://{socket_path}')
+
     def recreate(self, container_name: str, new_image_tag: str) -> tuple:
         logger.info(f"[重建器] 开始重建容器: {container_name} -> {new_image_tag}")
 
@@ -19,55 +23,35 @@ class Recreater:
             logger.debug(f"[重建器] 容器配置: {json.dumps(config, indent=2)}")
 
             logger.info(f"[重建器] 停止容器: {container_name}")
-            stop_result = subprocess.run(['docker', 'stop', container_name], capture_output=True, text=True)
-            logger.debug(f"[重建器] stop 返回码: {stop_result.returncode}, stdout: {stop_result.stdout}, stderr: {stop_result.stderr}")
+            container = self.docker_client.containers.get(container_name)
+            container.stop()
+            logger.debug(f"[重建器] 容器已停止")
 
             logger.info(f"[重建器] 删除容器: {container_name}")
-            rm_result = subprocess.run(['docker', 'rm', container_name], capture_output=True, text=True)
-            logger.debug(f"[重建器] rm 返回码: {rm_result.returncode}, stdout: {rm_result.stdout}, stderr: {rm_result.stderr}")
+            container.remove()
+            logger.debug(f"[重建器] 容器已删除")
 
-            cmd = self._build_create_command(config, new_image_tag, container_name)
-            logger.info(f"[重建器] 构建创建命令: {' '.join(cmd)}")
-            logger.debug(f"[重建器] 完整命令: {cmd}")
-
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            logger.debug(f"[重建器] create 返回码: {result.returncode}")
-            logger.debug(f"[重建器] create stdout: {result.stdout}")
-            logger.debug(f"[重建器] create stderr: {result.stderr}")
-
-            if result.returncode != 0:
-                logger.error(f"[重建器] 创建容器失败: {result.stderr}")
-                return False, f"创建容器失败: {result.stderr}"
+            logger.info(f"[重建器] 使用新镜像创建容器: {new_image_tag}")
+            new_container = self._create_container(config, new_image_tag, container_name)
+            if not new_container:
+                return False, "创建容器失败"
 
             logger.info(f"[重建器] 启动容器: {container_name}")
-            start_result = subprocess.run(['docker', 'start', container_name], capture_output=True, text=True)
-            logger.debug(f"[重建器] start 返回码: {start_result.returncode}, stdout: {start_result.stdout}, stderr: {start_result.stderr}")
+            new_container.start()
+            logger.debug(f"[重建器] 容器已启动")
 
             logger.info(f"[重建器] 容器升级成功: {container_name} -> {new_image_tag}")
             return True, f"容器已升级到 {new_image_tag}"
 
-        except subprocess.CalledProcessError as e:
-            logger.error(f"[重建器] 操作失败: {e}")
-            return False, f"操作失败: {e}"
         except Exception as e:
             logger.error(f"[重建器] 重建异常: {e}")
             return False, f"重建异常: {e}"
 
     def _get_container_config(self, container_name: str) -> dict:
         try:
-            logger.debug(f"[重建器] 执行 docker inspect {container_name}")
-            result = subprocess.run(
-                ['docker', 'inspect', container_name],
-                capture_output=True,
-                text=True
-            )
-            logger.debug(f"[重建器] inspect 返回码: {result.returncode}")
-
-            if result.returncode != 0:
-                logger.error(f"[重建器] docker inspect 失败: {result.stderr}")
-                return None
-
-            info = json.loads(result.stdout)[0]
+            logger.debug(f"[重建器] 获取容器: {container_name}")
+            container = self.docker_client.containers.get(container_name)
+            info = container.attrs
             logger.debug(f"[重建器] 成功获取容器配置")
 
             return {
@@ -85,69 +69,66 @@ class Recreater:
             logger.error(f"[重建器] 获取容器配置失败: {e}")
             return None
 
-    def _build_create_command(self, config: dict, new_image: str, container_name: str) -> list:
-        logger.debug(f"[重建器] 构建 docker create 命令...")
-        cmd = ['docker', 'create', '--name', container_name]
+    def _create_container(self, config: dict, new_image: str, container_name: str):
+        try:
+            logger.debug(f"[重建器] 构建容器创建参数...")
 
-        for env in config.get('env', []):
-            cmd.extend(['-e', env])
-        logger.debug(f"[重建器] 环境变量数量: {len(config.get('env', []))}")
+            host_config = config.get('host_config', {})
+            port_bindings = host_config.get('PortBindings', {})
+            logger.debug(f"[重建器] 端口绑定: {port_bindings}")
 
-        for mount in config.get('mounts', []):
-            mtype = mount.get('Type', 'bind')
-            source = mount.get('Source', '')
-            target = mount.get('Destination', '')
-            mode = 'ro' if not mount.get('RW', True) else 'rw'
-            cmd.extend(['--mount', f'type={mtype},source={source},target={target},{mode}'])
-        logger.debug(f"[重建器] 挂载点数量: {len(config.get('mounts', []))}")
+            port_map = {}
+            for container_port, host_ports in port_bindings.items():
+                if host_ports:
+                    port_map[container_port] = [{'HostPort': hp.get('HostPort', '')} for hp in host_ports]
 
-        host_config = config.get('host_config', {})
-        port_bindings = host_config.get('PortBindings', {})
-        logger.debug(f"[重建器] 端口绑定: {port_bindings}")
+            restart_policy = host_config.get('RestartPolicy', {})
+            restart_policy_name = restart_policy.get('Name', 'no')
+            logger.debug(f"[重建器] 重启策略: {restart_policy_name}")
 
-        for container_port, host_ports in port_bindings.items():
-            if host_ports:
-                for hp in host_ports:
-                    host_port = hp.get('HostPort', '')
-                    cmd.extend(['-p', f'{host_port}:{container_port}'])
+            binds = []
+            for mount in config.get('mounts', []):
+                mtype = mount.get('Type', 'bind')
+                source = mount.get('Source', '')
+                target = mount.get('Destination', '')
+                mode = 'ro' if not mount.get('RW', True) else 'rw'
+                binds.append(f'{source}:{target}:{mode}')
+                logger.debug(f"[重建器] 挂载: {source} -> {target} ({mode})")
 
-        for net_name in config.get('networking', {}).keys():
-            cmd.extend(['--network', net_name])
-        logger.debug(f"[重建器] 网络: {list(config.get('networking', {}).keys())}")
+            networking_config = {}
+            for net_name, net_info in config.get('networking', {}).items():
+                networking_config[net_name] = None
+            logger.debug(f"[重建器] 网络: {list(networking_config.keys())}")
 
-        memory = host_config.get('Memory', 0)
-        if memory and memory > 0:
-            cmd.extend(['-m', str(memory)])
-            logger.debug(f"[重建器] 内存限制: {memory}")
+            memory = host_config.get('Memory', 0)
+            cpu_period = host_config.get('CpuPeriod')
+            cpu_quota = host_config.get('CpuQuota')
 
-        cpu_period = host_config.get('CpuPeriod')
-        cpu_quota = host_config.get('CpuQuota')
-        if cpu_period and cpu_quota:
-            cmd.extend(['--cpu-period', str(cpu_period), '--cpu-quota', str(cpu_quota)])
-            logger.debug(f"[重建器] CPU 配置: period={cpu_period}, quota={cpu_quota}")
+            create_params = {
+                'name': container_name,
+                'image': new_image,
+                'environment': config.get('env', []),
+                'command': config.get('cmd'),
+                'entrypoint': config.get('entrypoint'),
+                'working_dir': config.get('working_dir'),
+                'ports': list(port_map.keys()) if port_map else None,
+                'volumes': [m['Destination'] for m in config.get('mounts', [])],
+                'host_config': {
+                    'PortBindings': port_map,
+                    'Binds': binds,
+                    'RestartPolicy': {'Name': restart_policy_name},
+                    'Memory': memory if memory else None,
+                    'CpuPeriod': cpu_period,
+                    'CpuQuota': cpu_quota,
+                },
+                'networking_config': networking_config if networking_config else None,
+            }
 
-        restart_policy = host_config.get('RestartPolicy', {})
-        if restart_policy.get('Name') and restart_policy['Name'] != 'no':
-            cmd.extend(['--restart', restart_policy['Name']])
-            logger.debug(f"[重建器] 重启策略: {restart_policy['Name']}")
+            logger.info(f"[重建器] 创建容器...")
+            container = self.docker_client.containers.create(**create_params)
+            logger.debug(f"[重建器] 容器创建成功: {container.id}")
+            return container
 
-        if config.get('entrypoint'):
-            cmd.extend(['--entrypoint', json.dumps(config['entrypoint'])])
-            logger.debug(f"[重建器] 入口点: {config['entrypoint']}")
-
-        if config.get('working_dir'):
-            cmd.extend(['-w', config['working_dir']])
-            logger.debug(f"[重建器] 工作目录: {config['working_dir']}")
-
-        cmd.append(new_image)
-        logger.debug(f"[重建器] 最终镜像: {new_image}")
-
-        if config.get('cmd'):
-            if isinstance(config['cmd'], list):
-                cmd.extend(config['cmd'])
-            else:
-                cmd.append(config['cmd'])
-            logger.debug(f"[重建器] 启动命令: {config['cmd']}")
-
-        logger.debug(f"[重建器] 最终命令构建完成，共 {len(cmd)} 个参数")
-        return cmd
+        except Exception as e:
+            logger.error(f"[重建器] 创建容器失败: {e}")
+            return None

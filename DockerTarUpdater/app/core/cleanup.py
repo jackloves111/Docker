@@ -1,10 +1,13 @@
-import subprocess
 import logging
 
 logger = logging.getLogger(__name__)
 
 class Cleanup:
     def __init__(self):
+        import docker
+        import os
+        socket_path = os.environ.get('DOCKER_SOCKET', '/var/run/docker.sock')
+        self.docker_client = docker.DockerClient(base_url=f'unix://{socket_path}')
         logger.debug("[清理器] 初始化清理器")
 
     def remove_tar(self, tar_path: str) -> bool:
@@ -27,29 +30,20 @@ class Cleanup:
 
         try:
             logger.info(f"[清理器] 开始删除旧镜像: {image_id}")
-            result = subprocess.run(
-                ['docker', 'rmi', image_id],
-                capture_output=True,
-                text=True
-            )
-            logger.debug(f"[清理器] rmi 返回码: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}")
-
-            if result.returncode != 0:
-                if 'No such image' in result.stderr:
-                    logger.warning(f"[清理器] 镜像不存在: {image_id}")
-                    return True, f"镜像不存在: {image_id}"
-                if 'is being used by' in result.stderr:
-                    logger.warning(f"[清理器] 镜像正在被使用，无法删除: {image_id}, 错误: {result.stderr}")
-                    return False, result.stderr
-                logger.error(f"[清理器] 删除镜像失败: {result.stderr}")
-                return False, result.stderr
-
+            image = self.docker_client.images.get(image_id)
+            image.remove()
             logger.info(f"[清理器] 成功删除旧镜像: {image_id}")
             return True, f"已删除镜像 {image_id[:12]}"
-
         except Exception as e:
-            logger.error(f"[清理器] 删除旧镜像异常: {e}")
-            return False, str(e)
+            error_str = str(e)
+            if 'No such image' in error_str:
+                logger.warning(f"[清理器] 镜像不存在: {image_id}")
+                return True, f"镜像不存在: {image_id}"
+            if 'is being used by' in error_str:
+                logger.warning(f"[清理器] 镜像正在被使用，无法删除: {image_id}, 错误: {error_str}")
+                return False, error_str
+            logger.error(f"[清理器] 删除旧镜像异常: {error_str}")
+            return False, error_str
 
     def cleanup_target_downloads(self, target_name: str, temp_dir: str) -> bool:
         try:
