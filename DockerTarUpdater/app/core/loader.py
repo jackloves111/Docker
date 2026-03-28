@@ -52,22 +52,18 @@ class Loader:
     def _extract_image_id_from_load_result(self, result) -> str:
         if not result:
             return None
-        for line in result:
-            if isinstance(line, dict) and 'id' in line:
-                image_id = line['id']
-                logger.debug(f"[加载器] 从加载结果找到镜像 ID: {image_id}")
+        for img in result:
+            if hasattr(img, 'id'):
+                image_id = img.id
+                logger.debug(f"[加载器] 从 Image 对象获取镜像 ID: {image_id}, 标签: {img.tags}")
                 return image_id
         return None
 
     def _find_loaded_image_id(self, result) -> str:
-        try:
-            for line in result:
-                if isinstance(line, dict) and 'id' in line:
-                    img_id = line['id']
-                    img = self.docker_client.images.get(img_id)
-                    if img:
-                        logger.debug(f"[加载器] 找到镜像: {img_id}, 标签: {img.tags}")
-                        return img_id
-        except Exception as e:
-            logger.warning(f"[加载器] 查找镜像失败: {e}")
+        if not result:
+            return None
+        for img in result:
+            if hasattr(img, 'id') and hasattr(img, 'tags'):
+                logger.debug(f"[加载器] Image 对象: ID={img.id}, 标签={img.tags}")
+                return img.id
         return None
