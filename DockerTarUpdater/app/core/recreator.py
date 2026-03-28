@@ -1,5 +1,4 @@
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class Recreater:
                 logger.error(f"[重建器] 容器 {container_name} 未找到")
                 return False, f"容器 {container_name} 未找到"
 
-            logger.debug(f"[重建器] 容器配置: {json.dumps(config, indent=2)}")
+            logger.debug(f"[重建器] 容器配置获取成功")
 
             logger.info(f"[重建器] 停止容器: {container_name}")
             container = self.docker_client.containers.get(container_name)
@@ -52,22 +51,42 @@ class Recreater:
             logger.debug(f"[重建器] 获取容器: {container_name}")
             container = self.docker_client.containers.get(container_name)
             info = container.attrs
-            logger.debug(f"[重建器] 成功获取容器配置")
 
-            return {
-                'image': info['Config']['Image'],
-                'env': info['Config']['Env'] or [],
-                'cmd': info['Config']['Cmd'],
-                'entrypoint': info['Config']['Entrypoint'],
-                'working_dir': info['Config']['WorkingDir'],
-                'mounts': info['Mounts'] or [],
-                'exposed_ports': info['Config'].get('ExposedPorts', {}),
-                'host_config': info['HostConfig'],
-                'networking': info['NetworkSettings']['Networks']
+            config = {
+                'image': info.get('Config', {}).get('Image', ''),
+                'env': self._parse_env(info.get('Config', {}).get('Env', [])),
+                'cmd': info.get('Config', {}).get('Cmd', None),
+                'entrypoint': info.get('Config', {}).get('Entrypoint', None),
+                'working_dir': info.get('Config', {}).get('WorkingDir', None),
+                'mounts': info.get('Mounts') or [],
+                'exposed_ports': info.get('Config', {}).get('ExposedPorts', {}),
+                'host_config': info.get('HostConfig') or {},
+                'networking': info.get('NetworkSettings', {}).get('Networks') or {}
             }
+
+            logger.debug(f"[重建器] 成功获取容器配置")
+            logger.debug(f"[重建器] 环境变量: {config['env']}")
+            logger.debug(f"[重建器] 启动命令: {config['cmd']}")
+            logger.debug(f"[重建器] 入口点: {config['entrypoint']}")
+            logger.debug(f"[重建器] 工作目录: {config['working_dir']}")
+            logger.debug(f"[重建器] 挂载数: {len(config['mounts'])}")
+            logger.debug(f"[重建器] 网络数: {len(config['networking'])}")
+
+            return config
         except Exception as e:
             logger.error(f"[重建器] 获取容器配置失败: {e}")
             return None
+
+    def _parse_env(self, env_list):
+        if not env_list:
+            return []
+        result = []
+        for env in env_list:
+            if env and isinstance(env, str) and '=' in env:
+                result.append(env)
+            elif env and isinstance(env, str):
+                result.append(env)
+        return result
 
     def _create_container(self, config: dict, new_image: str, container_name: str):
         try:
@@ -75,64 +94,111 @@ class Recreater:
 
             logger.debug(f"[重建器] 构建容器创建参数...")
 
-            host_config = config.get('host_config', {})
-            port_bindings = host_config.get('PortBindings', {})
+            host_config = config.get('host_config') or {}
+            port_bindings = host_config.get('PortBindings') or {}
             logger.debug(f"[重建器] 端口绑定: {port_bindings}")
 
             port_map = {}
             for container_port, host_ports in port_bindings.items():
                 if host_ports:
-                    port_map[container_port] = [{'HostPort': hp.get('HostPort', '')} for hp in host_ports]
+                    for hp in host_ports:
+                        host_port = hp.get('HostPort', '')
+                        if host_port:
+                            port_map[container_port] = [{'HostPort': host_port}]
 
-            restart_policy = host_config.get('RestartPolicy', {})
+            restart_policy = host_config.get('RestartPolicy') or {}
             restart_policy_name = restart_policy.get('Name', 'no')
+            if restart_policy_name == 'no':
+                restart_policy_name = 'no'
             logger.debug(f"[重建器] 重启策略: {restart_policy_name}")
 
             binds = []
-            for mount in config.get('mounts', []):
-                mtype = mount.get('Type', 'bind')
+            for mount in (config.get('mounts') or []):
+                mount_type = mount.get('Type', 'bind')
                 source = mount.get('Source', '')
                 target = mount.get('Destination', '')
+                if not source or not target:
+                    continue
                 mode = 'ro' if not mount.get('RW', True) else 'rw'
-                binds.append(f'{source}:{target}:{mode}')
-                logger.debug(f"[重建器] 挂载: {source} -> {target} ({mode})")
+                bind_str = f'{source}:{target}:{mode}'
+                binds.append(bind_str)
+                logger.debug(f"[重建器] 挂载: {bind_str}")
 
-            networking_config = {}
-            for net_name, net_info in config.get('networking', {}).items():
-                networking_config[net_name] = None
-            logger.debug(f"[重建器] 网络: {list(networking_config.keys())}")
+            networks = list((config.get('networking') or {}).keys())
+            logger.debug(f"[重建器] 网络: {networks}")
 
-            memory = host_config.get('Memory', 0)
+            memory = host_config.get('Memory')
             cpu_period = host_config.get('CpuPeriod')
             cpu_quota = host_config.get('CpuQuota')
 
-            hc = docker.types.HostConfig(
-                port_bindings=port_map if port_map else None,
-                binds=binds if binds else None,
-                restart_policy={'Name': restart_policy_name},
-                memory=memory if memory else None,
-                cpu_period=cpu_period,
-                cpu_quota=cpu_quota,
-            )
+            hc_kwargs = {}
+            if binds:
+                hc_kwargs['binds'] = binds
+            if port_map:
+                hc_kwargs['port_bindings'] = port_map
+            if restart_policy_name and restart_policy_name != 'no':
+                hc_kwargs['restart_policy'] = {'Name': restart_policy_name}
+            if memory:
+                hc_kwargs['memory'] = memory
+            if cpu_period and cpu_quota:
+                hc_kwargs['cpu_period'] = cpu_period
+                hc_kwargs['cpu_quota'] = cpu_quota
 
-            create_params = {
+            hc = docker.types.HostConfig(**hc_kwargs) if hc_kwargs else None
+            logger.debug(f"[重建器] HostConfig 构建完成")
+
+            create_kwargs = {
                 'name': container_name,
                 'image': new_image,
-                'environment': config.get('env', []),
-                'command': config.get('cmd'),
-                'entrypoint': config.get('entrypoint'),
-                'working_dir': config.get('working_dir'),
-                'ports': list(port_map.keys()) if port_map else None,
-                'volumes': [m['Destination'] for m in config.get('mounts', [])] if config.get('mounts') else None,
-                'host_config': hc,
-                'networking_config': networking_config if networking_config else None,
             }
 
-            logger.info(f"[重建器] 创建容器...")
-            container = self.docker_client.containers.create(**create_params)
+            env = config.get('env')
+            if env:
+                create_kwargs['environment'] = env
+
+            cmd = config.get('cmd')
+            if cmd:
+                create_kwargs['command'] = cmd
+
+            entrypoint = config.get('entrypoint')
+            if entrypoint:
+                create_kwargs['entrypoint'] = entrypoint
+
+            working_dir = config.get('working_dir')
+            if working_dir:
+                create_kwargs['working_dir'] = working_dir
+
+            exposed_ports = config.get('exposed_ports')
+            if exposed_ports:
+                create_kwargs['ports'] = list(exposed_ports.keys())
+
+            volumes_list = []
+            for mount in (config.get('mounts') or []):
+                target = mount.get('Destination', '')
+                if target:
+                    volumes_list.append(target)
+            if volumes_list:
+                create_kwargs['volumes'] = volumes_list
+
+            if hc:
+                create_kwargs['host_config'] = hc
+
+            if networks:
+                from docker.types import NetworkingConfig
+                endpoints_config = {}
+                for net_name in networks:
+                    endpoints_config[net_name] = None
+                create_kwargs['networking_config'] = NetworkingConfig(endpoints_config)
+
+            logger.info(f"[重建器] 创建容器，参数: name={container_name}, image={new_image}")
+            logger.debug(f"[重建器] 完整参数: {create_kwargs}")
+
+            container = self.docker_client.containers.create(**create_kwargs)
             logger.debug(f"[重建器] 容器创建成功: {container.id}")
             return container
 
         except Exception as e:
             logger.error(f"[重建器] 创建容器失败: {e}")
+            import traceback
+            logger.error(f"[重建器] 详细错误: {traceback.format_exc()}")
             return None
