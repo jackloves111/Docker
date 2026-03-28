@@ -50,6 +50,27 @@ docker run -d \
   dockertarupdater:latest
 ```
 
+### 本地开发启动
+
+```bash
+# 进入项目目录
+cd DockerTarUpdater
+
+# 安装后端依赖
+pip install -r requirements.txt
+
+# 修改 config.yaml 中的路径配置（开发环境）
+# 将 data_dir、log_file、socket_path 等改为本地路径
+
+# 启动后端（Flask）
+python -m app.main
+
+# 新开终端，启动前端
+cd web
+npm install
+npm run dev
+```
+
 ## 目录结构
 
 ```
