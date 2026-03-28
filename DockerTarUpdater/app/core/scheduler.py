@@ -11,6 +11,8 @@ _scheduler = None
 _app = None
 _scheduler_running = False
 
+DEFAULT_TIMEZONE = 'Asia/Shanghai'
+
 def init_scheduler(app):
     global _scheduler, _app
     _app = app
@@ -51,8 +53,8 @@ def add_job(target):
 
     if schedule_type == 'cron':
         try:
-            trigger = CronTrigger.from_crontab(schedule_value)
-            logger.debug(f"[调度器] Cron 表达式解析成功: {schedule_value}")
+            trigger = CronTrigger.from_crontab(schedule_value, timezone=DEFAULT_TIMEZONE)
+            logger.debug(f"[调度器] Cron 表达式解析成功: {schedule_value}, 时区: {DEFAULT_TIMEZONE}")
         except:
             logger.warning(f"[调度器] Cron 表达式解析失败: {schedule_value}，使用间隔 {schedule_value} 分钟")
             trigger = IntervalTrigger(minutes=int(schedule_value))

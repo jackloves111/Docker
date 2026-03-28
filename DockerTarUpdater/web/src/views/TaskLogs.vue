@@ -73,7 +73,7 @@ export default {
 
     const formatTime = (time) => {
       if (!time) return '-'
-      return new Date(time).toLocaleString('zh-CN')
+      return new Date(time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
     }
 
     const getDuration = (start, end) => {

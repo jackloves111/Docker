@@ -29,6 +29,18 @@ def setup_logging(config):
 
 def create_app():
     global _app
+
+    os.environ.setdefault('TZ', 'Asia/Shanghai')
+
+    import time
+    try:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo('Asia/Shanghai')
+    except ImportError:
+        import pytz
+        tz = pytz.timezone('Asia/Shanghai')
+    time.tzset()
+
     app = Flask(__name__)
     _app = app
 

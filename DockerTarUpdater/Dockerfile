@@ -1,6 +1,6 @@
 FROM python:3.11-alpine
 
-RUN apk add --no-cache nodejs npm
+RUN apk add --no-cache nodejs npm tzdata
 
 WORKDIR /app
 
@@ -20,5 +20,6 @@ EXPOSE 3006
 ENV PYTHONUNBUFFERED=1
 ENV CONFIG_PATH=/app/config.yaml
 ENV FRONTEND_DIST=/app/web/dist
+ENV TZ=Asia/Shanghai
 
 CMD ["python", "-m", "app.main"]
