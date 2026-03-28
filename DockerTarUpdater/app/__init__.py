@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
 from flask_cors import CORS
 import yaml
@@ -44,6 +44,19 @@ def create_app():
     os.makedirs(config['download']['temp_dir'], exist_ok=True)
 
     app.config['APP_CONFIG'] = config
+
+    frontend_dist = os.environ.get('FRONTEND_DIST', '/app/web/dist')
+    if os.path.exists(frontend_dist):
+        @app.route('/')
+        def serve_index():
+            return send_from_directory(frontend_dist, 'index.html')
+
+        @app.route('/<path:path>')
+        def serve_static(path):
+            file_path = os.path.join(frontend_dist, path)
+            if os.path.exists(file_path):
+                return send_from_directory(frontend_dist, path)
+            return send_from_directory(frontend_dist, 'index.html')
 
     from app.db.database import db
     db.init(config['app']['data_dir'])
