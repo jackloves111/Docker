@@ -1,26 +1,26 @@
 <template>
   <div class="target-list">
     <div class="toolbar">
-      <h2>Upgrade Targets</h2>
-      <el-button type="primary" @click="$router.push('/targets/edit')">Add Target</el-button>
+      <h2>升级目标</h2>
+      <el-button type="primary" @click="$router.push('/targets/edit')">添加目标</el-button>
     </div>
 
     <el-table :data="targets" style="width: 100%" v-loading="loading">
-      <el-table-column prop="name" label="Container Name" width="150" />
+      <el-table-column prop="name" label="容器名称" width="150" />
       <el-table-column prop="tar_url" label="Tar URL" show-overflow-tooltip />
-      <el-table-column prop="image_tag" label="Image Tag" width="180" />
-      <el-table-column prop="schedule_type" label="Schedule Type" width="120">
+      <el-table-column prop="image_tag" label="镜像标签" width="180" />
+      <el-table-column prop="schedule_type" label="调度类型" width="120">
         <template #default="{ row }">
-          {{ row.schedule_type === 'cron' ? 'Cron' : 'Interval' }}
+          {{ row.schedule_type === 'cron' ? 'Cron' : '间隔' }}
         </template>
       </el-table-column>
-      <el-table-column prop="schedule_value" label="Schedule" width="120" />
-      <el-table-column prop="enabled" label="Status" width="100">
+      <el-table-column prop="schedule_value" label="调度值" width="120" />
+      <el-table-column prop="enabled" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? 'Enabled' : 'Disabled' }}</el-tag>
+          <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '已启用' : '已禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="last_update_status" label="Last Update" width="120">
+      <el-table-column prop="last_update_status" label="最后更新" width="120">
         <template #default="{ row }">
           <el-tag v-if="row.last_update_status" :type="getStatusType(row.last_update_status)">
             {{ row.last_update_status }}
@@ -28,24 +28,24 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="280" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="viewInfo(row)">Info</el-button>
-          <el-button size="small" type="primary" @click="$router.push(`/targets/edit/${row.id}`)">Edit</el-button>
-          <el-button size="small" type="warning" @click="triggerUpgrade(row)" :loading="row.upgrading">Trigger</el-button>
-          <el-button size="small" type="danger" @click="deleteTarget(row)">Delete</el-button>
+          <el-button size="small" @click="viewInfo(row)">详情</el-button>
+          <el-button size="small" type="primary" @click="$router.push(`/targets/edit/${row.id}`)">编辑</el-button>
+          <el-button size="small" type="warning" @click="triggerUpgrade(row)" :loading="row.upgrading">触发</el-button>
+          <el-button size="small" type="danger" @click="deleteTarget(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showInfo" title="Container Info" width="600px">
+    <el-dialog v-model="showInfo" title="容器信息" width="600px">
       <el-descriptions v-if="containerInfo" :column="2" border>
-        <el-descriptions-item label="Name">{{ containerInfo.name }}</el-descriptions-item>
-        <el-descriptions-item label="Status">{{ containerInfo.status }}</el-descriptions-item>
-        <el-descriptions-item label="Image">{{ containerInfo.image }}</el-descriptions-item>
-        <el-descriptions-item label="Image ID">{{ containerInfo.image_id }}</el-descriptions-item>
+        <el-descriptions-item label="名称">{{ containerInfo.name }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ containerInfo.status }}</el-descriptions-item>
+        <el-descriptions-item label="镜像">{{ containerInfo.image }}</el-descriptions-item>
+        <el-descriptions-item label="镜像ID">{{ containerInfo.image_id }}</el-descriptions-item>
       </el-descriptions>
-      <el-empty v-else description="Container not found or not running" />
+      <el-empty v-else description="容器未找到或未运行" />
     </el-dialog>
   </div>
 </template>
@@ -69,7 +69,7 @@ export default {
         const res = await targetsAPI.list()
         targets.value = res.data.map(t => ({ ...t, upgrading: false }))
       } catch (e) {
-        ElMessage.error('Failed to load targets')
+        ElMessage.error('加载目标失败')
       } finally {
         loading.value = false
       }
@@ -90,9 +90,9 @@ export default {
       row.upgrading = true
       try {
         await targetsAPI.trigger(row.id)
-        ElMessage.success('Upgrade triggered')
+        ElMessage.success('升级已触发')
       } catch (e) {
-        ElMessage.error('Failed to trigger upgrade')
+        ElMessage.error('触发升级失败')
       } finally {
         setTimeout(() => { row.upgrading = false }, 3000)
       }
@@ -100,14 +100,14 @@ export default {
 
     const deleteTarget = async (row) => {
       try {
-        await ElMessageBox.confirm('Are you sure to delete this target?', 'Warning', {
+        await ElMessageBox.confirm('确定要删除此目标吗？', '警告', {
           type: 'warning'
         })
         await targetsAPI.delete(row.id)
-        ElMessage.success('Deleted')
+        ElMessage.success('删除成功')
         loadTargets()
       } catch (e) {
-        if (e !== 'cancel') ElMessage.error('Failed to delete')
+        if (e !== 'cancel') ElMessage.error('删除失败')
       }
     }
 

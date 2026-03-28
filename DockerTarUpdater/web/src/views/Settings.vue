@@ -1,53 +1,53 @@
 <template>
   <div class="settings">
-    <h2>Settings</h2>
+    <h2>设置</h2>
 
     <el-card class="settings-card" shadow="hover">
       <template #header>
-        <span>Notifications</span>
-        <el-button type="primary" size="small" @click="addNotification">Add</el-button>
+        <span>通知配置</span>
+        <el-button type="primary" size="small" @click="addNotification">添加</el-button>
       </template>
 
       <el-table :data="notifications" style="width: 100%">
-        <el-table-column prop="name" label="Name" width="150" />
-        <el-table-column prop="type" label="Type" width="120">
+        <el-table-column prop="name" label="名称" width="150" />
+        <el-table-column prop="type" label="类型" width="120">
           <template #default="{ row }">
             <el-tag>{{ row.type }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="enabled" label="Enabled" width="100">
+        <el-table-column prop="enabled" label="启用" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? 'Yes' : 'No' }}</el-tag>
+            <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '是' : '否' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="150">
+        <el-table-column label="操作" width="150">
           <template #default="{ row }">
-            <el-button size="small" type="danger" @click="deleteNotification(row)">Delete</el-button>
+            <el-button size="small" type="danger" @click="deleteNotification(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="showAddDialog" title="Add Notification" width="500px">
+    <el-dialog v-model="showAddDialog" title="添加通知" width="500px">
       <el-form :model="newNotif" label-width="100px">
-        <el-form-item label="Name">
-          <el-input v-model="newNotif.name" placeholder="My DingTalk" />
+        <el-form-item label="名称">
+          <el-input v-model="newNotif.name" placeholder="我的钉钉" />
         </el-form-item>
-        <el-form-item label="Type">
-          <el-select v-model="newNotif.type" placeholder="Select type">
+        <el-form-item label="类型">
+          <el-select v-model="newNotif.type" placeholder="选择类型">
             <el-option label="Web" value="web" />
-            <el-option label="DingTalk" value="dingtalk" />
-            <el-option label="FeiShu" value="feishu" />
-            <el-option label="Email" value="email" />
+            <el-option label="钉钉" value="dingtalk" />
+            <el-option label="飞书" value="feishu" />
+            <el-option label="邮件" value="email" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="newNotif.type === 'dingtalk'" label="Webhook">
-          <el-input v-model="newNotif.config.webhook" placeholder="DingTalk webhook URL" />
+          <el-input v-model="newNotif.config.webhook" placeholder="钉钉 Webhook URL" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddDialog = false">Cancel</el-button>
-        <el-button type="primary" @click="createNotification">Create</el-button>
+        <el-button @click="showAddDialog = false">取消</el-button>
+        <el-button type="primary" @click="createNotification">创建</el-button>
       </template>
     </el-dialog>
   </div>
@@ -86,22 +86,22 @@ export default {
     const createNotification = async () => {
       try {
         await notificationsAPI.create(newNotif.value)
-        ElMessage.success('Created')
+        ElMessage.success('创建成功')
         showAddDialog.value = false
         loadNotifications()
       } catch (e) {
-        ElMessage.error('Failed to create')
+        ElMessage.error('创建失败')
       }
     }
 
     const deleteNotification = async (row) => {
       try {
-        await ElMessageBox.confirm('Delete this notification?', 'Warning', { type: 'warning' })
+        await ElMessageBox.confirm('确定要删除此通知吗？', '警告', { type: 'warning' })
         await notificationsAPI.delete(row.id)
-        ElMessage.success('Deleted')
+        ElMessage.success('删除成功')
         loadNotifications()
       } catch (e) {
-        if (e !== 'cancel') ElMessage.error('Failed to delete')
+        if (e !== 'cancel') ElMessage.error('删除失败')
       }
     }
 

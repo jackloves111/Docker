@@ -1,12 +1,12 @@
 <template>
   <div class="dashboard">
-    <h2>Dashboard</h2>
+    <h2>控制台</h2>
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
         <el-card>
           <div class="stat-card">
             <div class="stat-value">{{ stats.targets.total }}</div>
-            <div class="stat-label">Total Targets</div>
+            <div class="stat-label">目标总数</div>
           </div>
         </el-card>
       </el-col>
@@ -14,7 +14,7 @@
         <el-card>
           <div class="stat-card">
             <div class="stat-value">{{ stats.targets.enabled }}</div>
-            <div class="stat-label">Enabled</div>
+            <div class="stat-label">已启用</div>
           </div>
         </el-card>
       </el-col>
@@ -22,7 +22,7 @@
         <el-card>
           <div class="stat-card">
             <div class="stat-value success">{{ stats.tasks.success || 0 }}</div>
-            <div class="stat-label">Successful</div>
+            <div class="stat-label">成功</div>
           </div>
         </el-card>
       </el-col>
@@ -30,7 +30,7 @@
         <el-card>
           <div class="stat-card">
             <div class="stat-value danger">{{ stats.tasks.failed || 0 }}</div>
-            <div class="stat-label">Failed</div>
+            <div class="stat-label">失败</div>
           </div>
         </el-card>
       </el-col>
@@ -38,18 +38,18 @@
 
     <el-card class="recent-tasks" shadow="hover">
       <template #header>
-        <span>Recent Tasks</span>
+        <span>最近任务</span>
       </template>
       <el-table :data="recentTasks" style="width: 100%">
-        <el-table-column prop="target_name" label="Target" width="150" />
-        <el-table-column prop="action" label="Action" width="120" />
-        <el-table-column prop="status" label="Status" width="100">
+        <el-table-column prop="target_name" label="目标名称" width="150" />
+        <el-table-column prop="action" label="操作" width="120" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="Message" />
-        <el-table-column prop="started_at" label="Time" width="180">
+        <el-table-column prop="message" label="消息" />
+        <el-table-column prop="started_at" label="时间" width="180">
           <template #default="{ row }">
             {{ formatTime(row.started_at) }}
           </template>
@@ -94,7 +94,7 @@ export default {
 
     const formatTime = (time) => {
       if (!time) return ''
-      return new Date(time).toLocaleString()
+      return new Date(time).toLocaleString('zh-CN')
     }
 
     onMounted(() => {

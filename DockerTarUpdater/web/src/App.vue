@@ -1,24 +1,24 @@
 <template>
   <div id="app">
-    <el-container>
+    <el-container class="app-container">
       <el-aside width="200px">
-        <div class="logo">DockerTarUpdater</div>
+        <div class="logo">Docker镜像更新器</div>
         <el-menu :default-active="$route.path" router>
           <el-menu-item index="/">
             <el-icon><HomeFilled /></el-icon>
-            <span>Dashboard</span>
+            <span>控制台</span>
           </el-menu-item>
           <el-menu-item index="/targets">
             <el-icon><Box /></el-icon>
-            <span>Targets</span>
+            <span>升级目标</span>
           </el-menu-item>
           <el-menu-item index="/logs">
             <el-icon><Document /></el-icon>
-            <span>Logs</span>
+            <span>任务日志</span>
           </el-menu-item>
           <el-menu-item index="/settings">
             <el-icon><Setting /></el-icon>
-            <span>Settings</span>
+            <span>设置</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -27,13 +27,13 @@
           <div class="header-content">
             <span class="scheduler-status">
               <el-tag :type="schedulerRunning ? 'success' : 'danger'">
-                Scheduler: {{ schedulerRunning ? 'Running' : 'Stopped' }}
+                调度器: {{ schedulerRunning ? '运行中' : '已停止' }}
               </el-tag>
             </span>
             <el-button-group>
-              <el-button v-if="!schedulerRunning" type="success" @click="startScheduler">Start</el-button>
-              <el-button v-else type="warning" @click="stopScheduler">Stop</el-button>
-              <el-button @click="syncScheduler">Sync</el-button>
+              <el-button v-if="!schedulerRunning" type="success" @click="startScheduler">启动</el-button>
+              <el-button v-else type="warning" @click="stopScheduler">停止</el-button>
+              <el-button @click="syncScheduler">同步</el-button>
             </el-button-group>
             <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge">
               <el-button circle @click="showNotifications = true">
@@ -48,7 +48,7 @@
       </el-container>
     </el-container>
 
-    <el-dialog v-model="showNotifications" title="Notifications" width="500px">
+    <el-dialog v-model="showNotifications" title="通知中心" width="500px">
       <el-scrollbar height="400px">
         <div v-for="notif in notifications" :key="notif.id" class="notification-item">
           <el-tag :type="getNotifType(notif.type)" size="small">{{ notif.type }}</el-tag>
@@ -56,10 +56,10 @@
           <p>{{ notif.message }}</p>
           <small>{{ formatTime(notif.created_at) }}</small>
         </div>
-        <el-empty v-if="notifications.length === 0" description="No notifications" />
+        <el-empty v-if="notifications.length === 0" description="暂无通知" />
       </el-scrollbar>
       <template #footer>
-        <el-button @click="markAllRead">Mark All Read</el-button>
+        <el-button @click="markAllRead">全部标记为已读</el-button>
       </template>
     </el-dialog>
   </div>
@@ -125,7 +125,7 @@ export default {
 
     const formatTime = (time) => {
       if (!time) return ''
-      return new Date(time).toLocaleString()
+      return new Date(time).toLocaleString('zh-CN')
     }
 
     onMounted(() => {
@@ -159,7 +159,8 @@ export default {
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, #app { height: 100%; }
-.el-aside { background: #1a1a2e; }
+.app-container { height: 100%; }
+.el-aside { background: #1a1a2e; height: 100%; }
 .logo { color: #fff; padding: 20px; font-size: 18px; font-weight: bold; text-align: center; }
 .el-menu { border: none; background: transparent; }
 .el-menu-item { color: #fff; }

@@ -1,47 +1,47 @@
 <template>
   <div class="target-edit">
     <div class="toolbar">
-      <h2>{{ isEdit ? 'Edit Target' : 'Add Target' }}</h2>
-      <el-button @click="$router.push('/targets')">Back</el-button>
+      <h2>{{ isEdit ? '编辑目标' : '添加目标' }}</h2>
+      <el-button @click="$router.push('/targets')">返回</el-button>
     </div>
 
     <el-card>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="140px">
-        <el-form-item label="Container Name" prop="name">
-          <el-input v-model="form.name" placeholder="e.g., my-app" />
+        <el-form-item label="容器名称" prop="name">
+          <el-input v-model="form.name" placeholder="例如: my-app" />
         </el-form-item>
 
         <el-form-item label="Tar URL" prop="tar_url">
           <el-input v-model="form.tar_url" placeholder="https://example.com/image.tar" />
         </el-form-item>
 
-        <el-form-item label="Image Tag" prop="image_tag">
+        <el-form-item label="镜像标签" prop="image_tag">
           <el-input v-model="form.image_tag" placeholder="myrepo/myapp:latest" />
         </el-form-item>
 
-        <el-form-item label="Schedule Type" prop="schedule_type">
+        <el-form-item label="调度类型" prop="schedule_type">
           <el-radio-group v-model="form.schedule_type">
-            <el-radio label="interval">Interval</el-radio>
+            <el-radio label="interval">间隔</el-radio>
             <el-radio label="cron">Cron</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="Schedule" prop="schedule_value">
-          <el-input v-if="form.schedule_type === 'interval'" v-model="form.schedule_value" placeholder="Minutes, e.g., 360">
-            <template #append>minutes</template>
+        <el-form-item label="调度值" prop="schedule_value">
+          <el-input v-if="form.schedule_type === 'interval'" v-model="form.schedule_value" placeholder="分钟数, 例如: 360">
+            <template #append>分钟</template>
           </el-input>
           <el-input v-else v-model="form.schedule_value" placeholder="0 2 * * *">
-            <template #append>Cron Expression</template>
+            <template #append>Cron 表达式</template>
           </el-input>
         </el-form-item>
 
-        <el-form-item label="Enabled">
+        <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submit" :loading="saving">Save</el-button>
-          <el-button @click="$router.push('/targets')">Cancel</el-button>
+          <el-button type="primary" @click="submit" :loading="saving">保存</el-button>
+          <el-button @click="$router.push('/targets')">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -74,10 +74,10 @@ export default {
     })
 
     const rules = {
-      name: [{ required: true, message: 'Please enter container name', trigger: 'blur' }],
-      tar_url: [{ required: true, message: 'Please enter Tar URL', trigger: 'blur' }],
-      image_tag: [{ required: true, message: 'Please enter Image Tag', trigger: 'blur' }],
-      schedule_value: [{ required: true, message: 'Please enter schedule value', trigger: 'blur' }]
+      name: [{ required: true, message: '请输入容器名称', trigger: 'blur' }],
+      tar_url: [{ required: true, message: '请输入 Tar URL', trigger: 'blur' }],
+      image_tag: [{ required: true, message: '请输入镜像标签', trigger: 'blur' }],
+      schedule_value: [{ required: true, message: '请输入调度值', trigger: 'blur' }]
     }
 
     const loadTarget = async () => {
@@ -93,7 +93,7 @@ export default {
           enabled: !!res.data.enabled
         }
       } catch (e) {
-        ElMessage.error('Failed to load target')
+        ElMessage.error('加载目标失败')
       }
     }
 
@@ -103,14 +103,14 @@ export default {
         saving.value = true
         if (isEdit.value) {
           await targetsAPI.update(route.params.id, form.value)
-          ElMessage.success('Updated')
+          ElMessage.success('更新成功')
         } else {
           await targetsAPI.create(form.value)
-          ElMessage.success('Created')
+          ElMessage.success('创建成功')
         }
         router.push('/targets')
       } catch (e) {
-        if (e !== false) ElMessage.error('Failed to save')
+        if (e !== false) ElMessage.error('保存失败')
       } finally {
         saving.value = false
       }
