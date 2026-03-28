@@ -43,6 +43,10 @@ class Downloader:
                     raise Exception(f"下载不完整: 已下载 {downloaded}/{total_size} 字节")
 
                 actual_size = os.path.getsize(local_path)
+                if actual_size < 5 * 1024 * 1024:
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                    return False, None, f"文件过小: {actual_size} 字节 < 5MB"
                 logger.info(f"[下载器] 下载完成，文件大小: {actual_size} 字节，保存路径: {local_path}")
                 return True, local_path, None
 
