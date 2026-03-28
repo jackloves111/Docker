@@ -5,42 +5,50 @@ logger = logging.getLogger(__name__)
 
 class Cleanup:
     def __init__(self):
-        pass
+        logger.debug("[清理器] 初始化清理器")
 
     def remove_tar(self, tar_path: str) -> bool:
         try:
             import os
             if tar_path and os.path.exists(tar_path):
                 os.remove(tar_path)
-                logger.info(f"Removed tar file: {tar_path}")
+                logger.info(f"[清理器] 删除 tar 文件: {tar_path}")
                 return True
+            else:
+                logger.warning(f"[清理器] tar 文件不存在: {tar_path}")
         except Exception as e:
-            logger.error(f"Failed to remove tar {tar_path}: {e}")
+            logger.error(f"[清理器] 删除 tar 文件失败 {tar_path}: {e}")
         return False
 
     def remove_old_image(self, image_id: str) -> tuple:
         if not image_id:
-            return True, "No old image to remove"
+            logger.debug("[清理器] 没有旧镜像需要删除")
+            return True, "没有旧镜像需要删除"
 
         try:
-            logger.info(f"Removing old image: {image_id}")
+            logger.info(f"[清理器] 开始删除旧镜像: {image_id}")
             result = subprocess.run(
                 ['docker', 'rmi', image_id],
                 capture_output=True,
                 text=True
             )
+            logger.debug(f"[清理器] rmi 返回码: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}")
 
             if result.returncode != 0:
-                if 'No such image' in result.stderr or 'is being used by' in result.stderr:
-                    logger.warning(f"Cannot remove image {image_id}: {result.stderr}")
+                if 'No such image' in result.stderr:
+                    logger.warning(f"[清理器] 镜像不存在: {image_id}")
+                    return True, f"镜像不存在: {image_id}"
+                if 'is being used by' in result.stderr:
+                    logger.warning(f"[清理器] 镜像正在被使用，无法删除: {image_id}, 错误: {result.stderr}")
                     return False, result.stderr
+                logger.error(f"[清理器] 删除镜像失败: {result.stderr}")
                 return False, result.stderr
 
-            logger.info(f"Removed old image: {image_id}")
-            return True, f"Removed image {image_id[:12]}"
+            logger.info(f"[清理器] 成功删除旧镜像: {image_id}")
+            return True, f"已删除镜像 {image_id[:12]}"
 
         except Exception as e:
-            logger.error(f"Failed to remove old image: {e}")
+            logger.error(f"[清理器] 删除旧镜像异常: {e}")
             return False, str(e)
 
     def cleanup_target_downloads(self, target_name: str, temp_dir: str) -> bool:
@@ -48,10 +56,13 @@ class Cleanup:
             import os
             import shutil
             target_dir = os.path.join(temp_dir, target_name.replace(' ', '_'))
+            logger.debug(f"[清理器] 检查下载目录: {target_dir}")
             if os.path.exists(target_dir):
                 shutil.rmtree(target_dir)
-                logger.info(f"Cleaned up downloads for {target_name}")
+                logger.info(f"[清理器] 清理下载目录: {target_name} ({target_dir})")
                 return True
+            else:
+                logger.debug(f"[清理器] 下载目录不存在，无需清理: {target_dir}")
         except Exception as e:
-            logger.error(f"Failed to cleanup downloads for {target_name}: {e}")
+            logger.error(f"[清理器] 清理下载目录失败 {target_name}: {e}")
         return False

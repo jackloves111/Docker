@@ -6,33 +6,45 @@ from app.utils.docker_client import get_container_info, list_containers
 from app.core.scheduler import add_job, remove_job
 from app.core.engine import trigger_upgrade
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('targets', __name__, url_prefix='/api/targets')
 
 @bp.route('', methods=['GET'])
 def get_targets():
+    logger.debug("[API] GET /api/targets - 获取所有目标")
     targets = Target.get_all()
+    logger.debug(f"[API] 返回 {len(targets)} 个目标")
     return success(targets)
 
 @bp.route('/<int:target_id>', methods=['GET'])
 def get_target(target_id):
+    logger.debug(f"[API] GET /api/targets/{target_id} - 获取单个目标")
     target = Target.get_by_id(target_id)
     if not target:
-        return error('Target not found', 404)
+        logger.warning(f"[API] 目标 {target_id} 未找到")
+        return error('目标不存在', 404)
     return success(target)
 
 @bp.route('', methods=['POST'])
 def create_target():
+    logger.info("[API] POST /api/targets - 创建目标")
     data = request.get_json()
     if not data:
-        return error('Invalid request data')
+        logger.warning("[API] 创建目标失败: 无效的请求数据")
+        return error('无效的请求数据')
 
     name = data.get('name')
     tar_url = data.get('tar_url')
     image_tag = data.get('image_tag')
 
+    logger.debug(f"[API] 创建目标数据: name={name}, tar_url={tar_url}, image_tag={image_tag}")
+
     if not all([name, tar_url, image_tag]):
-        return error('Missing required fields')
+        logger.warning("[API] 创建目标失败: 缺少必填字段")
+        return error('缺少必填字段')
 
     try:
         target_id = Target.create(
@@ -43,84 +55,112 @@ def create_target():
             schedule_value=data.get('schedule_value', '360')
         )
 
+        logger.info(f"[API] 目标创建成功: ID={target_id}, 名称={name}")
+
         target = Target.get_by_id(target_id)
         if target.get('enabled'):
             add_job(target)
+            logger.debug(f"[API] 目标已启用，添加到调度器")
 
-        return success({'id': target_id}, 'Target created')
+        return success({'id': target_id}, '目标创建成功')
     except Exception as e:
-        return error(f'Failed to create target: {str(e)}')
+        logger.error(f"[API] 创建目标异常: {e}")
+        return error(f'创建目标失败: {str(e)}')
 
 @bp.route('/<int:target_id>', methods=['PUT'])
 def update_target(target_id):
+    logger.info(f"[API] PUT /api/targets/{target_id} - 更新目标")
     data = request.get_json()
     if not data:
-        return error('Invalid request data')
+        logger.warning(f"[API] 更新目标 {target_id} 失败: 无效的请求数据")
+        return error('无效的请求数据')
 
     target = Target.get_by_id(target_id)
     if not target:
-        return error('Target not found', 404)
+        logger.warning(f"[API] 更新目标失败: 目标 {target_id} 不存在")
+        return error('目标不存在', 404)
 
     allowed_fields = ['name', 'tar_url', 'image_tag', 'schedule_type', 'schedule_value', 'enabled']
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
+    logger.debug(f"[API] 更新字段: {update_data}")
 
     try:
         Target.update(target_id, **update_data)
+        logger.info(f"[API] 目标 {target_id} 更新成功")
 
         updated_target = Target.get_by_id(target_id)
         if updated_target.get('enabled'):
             add_job(updated_target)
+            logger.debug(f"[API] 目标已启用，更新调度器")
         else:
             remove_job(target_id)
+            logger.debug(f"[API] 目标已禁用，从调度器移除")
 
-        return success(updated_target, 'Target updated')
+        return success(updated_target, '目标更新成功')
     except Exception as e:
-        return error(f'Failed to update target: {str(e)}')
+        logger.error(f"[API] 更新目标 {target_id} 异常: {e}")
+        return error(f'更新目标失败: {str(e)}')
 
 @bp.route('/<int:target_id>', methods=['DELETE'])
 def delete_target(target_id):
+    logger.info(f"[API] DELETE /api/targets/{target_id} - 删除目标")
     target = Target.get_by_id(target_id)
     if not target:
-        return error('Target not found', 404)
+        logger.warning(f"[API] 删除目标失败: 目标 {target_id} 不存在")
+        return error('目标不存在', 404)
 
     try:
         remove_job(target_id)
+        logger.debug(f"[API] 从调度器移除目标 {target_id}")
         Target.delete(target_id)
-        return success(message='Target deleted')
+        logger.info(f"[API] 目标 {target_id} 删除成功")
+        return success(message='目标删除成功')
     except Exception as e:
-        return error(f'Failed to delete target: {str(e)}')
+        logger.error(f"[API] 删除目标 {target_id} 异常: {e}")
+        return error(f'删除目标失败: {str(e)}')
 
 @bp.route('/<int:target_id>/trigger', methods=['POST'])
 def trigger_upgrade_api(target_id):
+    logger.info(f"[API] POST /api/targets/{target_id}/trigger - 触发升级")
     target = Target.get_by_id(target_id)
     if not target:
-        return error('Target not found', 404)
+        logger.warning(f"[API] 触发升级失败: 目标 {target_id} 不存在")
+        return error('目标不存在', 404)
 
+    logger.info(f"[API] 启动升级线程，目标: {target['name']}")
     thread = threading.Thread(target=trigger_upgrade, args=(target_id,))
     thread.daemon = True
     thread.start()
 
-    return success(message='Upgrade triggered')
+    return success(message='升级已触发')
 
 @bp.route('/<int:target_id>/info', methods=['GET'])
 def get_target_info(target_id):
+    logger.debug(f"[API] GET /api/targets/{target_id}/info - 获取容器信息")
     target = Target.get_by_id(target_id)
     if not target:
-        return error('Target not found', 404)
+        logger.warning(f"[API] 获取容器信息失败: 目标 {target_id} 不存在")
+        return error('目标不存在', 404)
 
     try:
         container_info = get_container_info(target['name'])
         if container_info:
+            logger.debug(f"[API] 容器信息获取成功: {target['name']}")
             return success(container_info)
         else:
-            return success({'status': 'not_found'}, 'Container not found')
+            logger.warning(f"[API] 容器未找到: {target['name']}")
+            return success({'status': 'not_found'}, '容器未找到')
     except Exception as e:
-        return error(f'Failed to get container info: {str(e)}')
+        logger.error(f"[API] 获取容器信息异常: {e}")
+        return error(f'获取容器信息失败: {str(e)}')
 
 @bp.route('/containers', methods=['GET'])
 def get_docker_containers():
+    logger.debug("[API] GET /api/targets/containers - 列出所有容器")
     try:
         containers = list_containers()
+        logger.info(f"[API] 返回 {len(containers)} 个容器信息")
         return success(containers)
     except Exception as e:
-        return error(f'Failed to list containers: {str(e)}')
+        logger.error(f"[API] 列出容器异常: {e}")
+        return error(f'列出容器失败: {str(e)}')

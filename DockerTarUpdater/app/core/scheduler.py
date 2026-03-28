@@ -20,37 +20,49 @@ def init_scheduler(app):
     _scheduler = BackgroundScheduler()
 
     targets = Target.get_enabled()
+    logger.info(f"[调度器] 初始化，找到 {len(targets)} 个启用的目标")
     for target in targets:
         add_job(target)
 
     if app.config['APP_CONFIG']['scheduler'].get('default_enabled', True):
+        logger.info("[调度器] 默认启用调度器")
         start_scheduler()
+    else:
+        logger.info("[调度器] 默认禁用调度器")
 
-    logger.info("Scheduler initialized")
+    logger.info("[调度器] 调度器初始化完成")
 
 def add_job(target):
     global _scheduler
     if not _scheduler:
+        logger.warning("[调度器] 调度器未初始化，无法添加任务")
         return
 
     job_id = f"target_{target['id']}"
 
     if _scheduler.get_job(job_id):
+        logger.info(f"[调度器] 任务已存在，先移除: {job_id}")
         _scheduler.remove_job(job_id)
 
     schedule_type = target.get('schedule_type', 'interval')
     schedule_value = target.get('schedule_value', '360')
 
+    logger.info(f"[调度器] 添加任务 - ID: {job_id}, 目标: {target['name']}, 类型: {schedule_type}, 值: {schedule_value}")
+
     if schedule_type == 'cron':
         try:
             trigger = CronTrigger.from_crontab(schedule_value)
+            logger.debug(f"[调度器] Cron 表达式解析成功: {schedule_value}")
         except:
+            logger.warning(f"[调度器] Cron 表达式解析失败: {schedule_value}，使用间隔 {schedule_value} 分钟")
             trigger = IntervalTrigger(minutes=int(schedule_value))
     else:
         try:
             minutes = int(schedule_value)
             trigger = IntervalTrigger(minutes=minutes)
+            logger.debug(f"[调度器] 间隔时间: {minutes} 分钟")
         except:
+            logger.warning(f"[调度器] 间隔时间解析失败: {schedule_value}，使用默认值 360 分钟")
             trigger = IntervalTrigger(minutes=360)
 
     from app.core.engine import trigger_upgrade
@@ -62,31 +74,34 @@ def add_job(target):
         replace_existing=True
     )
 
-    logger.info(f"Added scheduled job for {target['name']}: {schedule_type}={schedule_value}")
+    logger.info(f"[调度器] 任务添加成功: {target['name']}")
 
 def remove_job(target_id):
     global _scheduler
     if not _scheduler:
+        logger.warning("[调度器] 调度器未初始化，无法移除任务")
         return
 
     job_id = f"target_{target_id}"
     if _scheduler.get_job(job_id):
         _scheduler.remove_job(job_id)
-        logger.info(f"Removed scheduled job: {job_id}")
+        logger.info(f"[调度器] 已移除任务: {job_id}")
+    else:
+        logger.debug(f"[调度器] 任务不存在，无需移除: {job_id}")
 
 def start_scheduler():
     global _scheduler, _scheduler_running
     if _scheduler and not _scheduler_running:
         _scheduler.start()
         _scheduler_running = True
-        logger.info("Scheduler started")
+        logger.info("[调度器] 调度器已启动")
 
 def stop_scheduler():
     global _scheduler, _scheduler_running
     if _scheduler and _scheduler_running:
         _scheduler.shutdown(wait=False)
         _scheduler_running = False
-        logger.info("Scheduler stopped")
+        logger.info("[调度器] 调度器已停止")
 
 def get_scheduler_status():
     global _scheduler, _scheduler_running
@@ -101,6 +116,7 @@ def get_scheduler_status():
             'next_run': job.next_run_time.isoformat() if job.next_run_time else None
         })
 
+    logger.debug(f"[调度器] 状态查询: 运行中={_scheduler_running}, 任务数={len(jobs)}")
     return {
         'running': _scheduler_running,
         'jobs': jobs
@@ -109,12 +125,14 @@ def get_scheduler_status():
 def sync_jobs():
     global _app
     if not _app:
+        logger.warning("[调度器] 应用未初始化，无法同步任务")
         return
 
     from app.models.target import Target
 
     targets = Target.get_enabled()
+    logger.info(f"[调度器] 同步任务，共 {len(targets)} 个启用的目标")
     for target in targets:
         add_job(target)
 
-    logger.info(f"Synced {len(targets)} scheduled jobs")
+    logger.info(f"[调度器] 任务同步完成")
