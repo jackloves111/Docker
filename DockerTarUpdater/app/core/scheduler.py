@@ -16,7 +16,6 @@ def init_scheduler(app):
     _app = app
 
     from app.models.target import Target
-    from app.core.engine import run_upgrade_task
 
     _scheduler = BackgroundScheduler()
 
@@ -54,8 +53,9 @@ def add_job(target):
         except:
             trigger = IntervalTrigger(minutes=360)
 
+    from app.core.engine import trigger_upgrade
     _scheduler.add_job(
-        func=run_upgrade_task,
+        func=trigger_upgrade,
         trigger=trigger,
         id=job_id,
         args=[target['id']],

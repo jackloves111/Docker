@@ -92,4 +92,6 @@ def run_upgrade_task(target_id):
             pass
 
 def trigger_upgrade(target_id):
-    run_upgrade_task(target_id)
+    from app import app
+    with app.app_context():
+        run_upgrade_task(target_id)
