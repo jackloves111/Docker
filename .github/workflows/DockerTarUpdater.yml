@@ -1,0 +1,54 @@
+name: DockerTarUpdater
+
+on:
+  push:
+    paths:
+      - 'DockerTarUpdater/app/**'
+      - 'DockerTarUpdater/web/**'
+      - 'DockerTarUpdater/config.yaml'
+      - 'DockerTarUpdater/requirements.txt'
+      - 'DockerTarUpdater/Dockerfile'
+  workflow_dispatch:
+
+jobs:
+  job1:
+    name: buildx tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set env
+        run: |
+          echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          echo "PYTHON_VER=$(awk -F: '/^FROM python:/ {print $2}' DockerTarUpdater/Dockerfile | tr -d ' ')" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: ./DockerTarUpdater
+          file: ./DockerTarUpdater/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            nobody114/dockertarupdater:latest
+            nobody114/dockertarupdater:${{ env.BUILD_DATE }}
+            nobody114/dockertarupdater:python-${{ env.PYTHON_VER }}
