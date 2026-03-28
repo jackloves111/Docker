@@ -7,7 +7,12 @@
 
     <el-table :data="targets" style="width: 100%" v-loading="loading">
       <el-table-column prop="name" label="目标名称/标识" width="150" />
-      <el-table-column prop="tar_url" label="Tar URL" show-overflow-tooltip />
+      <el-table-column prop="tar_url" label="Tar URL" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.tar_url }}
+          <el-tag v-if="row.url_type === 'api'" type="warning" size="small" style="margin-left: 4px">API</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="image_tag" label="镜像标签" width="180" />
       <el-table-column prop="schedule_type" label="调度类型" width="120">
         <template #default="{ row }">

@@ -40,6 +40,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name VARCHAR(128) NOT NULL UNIQUE,
                     tar_url VARCHAR(512) NOT NULL,
+                    url_type VARCHAR(16) DEFAULT 'direct',
                     image_tag VARCHAR(256) NOT NULL,
                     schedule_type VARCHAR(32) DEFAULT 'interval',
                     schedule_value VARCHAR(128) DEFAULT '360',

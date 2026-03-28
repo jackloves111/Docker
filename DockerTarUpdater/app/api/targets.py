@@ -50,7 +50,8 @@ def create_target():
             tar_url=tar_url,
             image_tag=image_tag,
             schedule_type=data.get('schedule_type', 'interval'),
-            schedule_value=data.get('schedule_value', '360')
+            schedule_value=data.get('schedule_value', '360'),
+            url_type=data.get('url_type', 'direct')
         )
 
         logger.info(f"[API] 目标创建成功: ID={target_id}")

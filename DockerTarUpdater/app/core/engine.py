@@ -1,7 +1,24 @@
 import logging
 import traceback
+import requests
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_api_url(api_url: str) -> str:
+    try:
+        logger.info(f"[解析] 开始解析 API URL: {api_url}")
+        resp = requests.get(api_url, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        resolved_url = data.get('DOC_URL') or data.get('url') or data.get('tar_url')
+        if not resolved_url:
+            raise ValueError(f"API 返回数据中未找到下载链接字段: {data}")
+        logger.info(f"[解析] 解析完成，实际下载 URL: {resolved_url}")
+        return resolved_url
+    except Exception as e:
+        logger.error(f"[解析] API URL 解析失败: {e}")
+        raise
 
 def run_upgrade_task(target_id):
     from flask import current_app
@@ -23,9 +40,10 @@ def run_upgrade_task(target_id):
 
     target_name = target['name']
     tar_url = target['tar_url']
+    url_type = target.get('url_type', 'direct')
     image_tag = target['image_tag']
 
-    logger.info(f"[升级任务] 目标名称: {target_name}, Tar URL: {tar_url}, 镜像标签: {image_tag}")
+    logger.info(f"[升级任务] 目标名称: {target_name}, Tar URL: {tar_url}, URL类型: {url_type}, 镜像标签: {image_tag}")
 
     log_id = TaskLog.create(target_id, target_name, 'upgrade')
     logger.debug(f"[升级任务] 创建任务日志 ID: {log_id}")
@@ -58,6 +76,9 @@ def run_upgrade_task(target_id):
         notifier.notify_update_start(target_name, image_tag)
 
         logger.info(f"[升级任务] 开始下载 tar 包: {tar_url}")
+        if url_type == 'api':
+            tar_url = resolve_api_url(tar_url)
+
         success, tar_path, error = downloader.download(tar_url, target_name)
         if not success:
             logger.error(f"[升级任务] 下载失败: {error}")

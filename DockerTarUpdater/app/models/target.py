@@ -20,14 +20,14 @@ class Target:
             return dict(zip(columns, row)) if row else None
 
     @staticmethod
-    def create(tar_url, image_tag, schedule_type='interval', schedule_value='360'):
+    def create(tar_url, image_tag, schedule_type='interval', schedule_value='360', url_type='direct'):
         import time
         name = f"{image_tag.replace(':', '_').replace('/', '_')}_{int(time.time())}"
         with db.get_cursor() as cursor:
             cursor.execute('''
-                INSERT INTO targets (name, tar_url, image_tag, schedule_type, schedule_value)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (name, tar_url, image_tag, schedule_type, schedule_value))
+                INSERT INTO targets (name, tar_url, url_type, image_tag, schedule_type, schedule_value)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, tar_url, url_type, image_tag, schedule_type, schedule_value))
             return cursor.lastrowid
 
     @staticmethod

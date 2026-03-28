@@ -11,6 +11,13 @@
           <el-input v-model="form.tar_url" placeholder="https://example.com/image.tar" />
         </el-form-item>
 
+        <el-form-item label="链接类型" prop="url_type">
+          <el-radio-group v-model="form.url_type">
+            <el-radio label="direct">直链</el-radio>
+            <el-radio label="api">API</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="镜像标签" prop="image_tag">
           <el-input v-model="form.image_tag" placeholder="myrepo/myapp:latest" />
         </el-form-item>
@@ -62,6 +69,7 @@ export default {
 
     const form = ref({
       tar_url: '',
+      url_type: 'direct',
       image_tag: '',
       schedule_type: 'interval',
       schedule_value: '360',
@@ -80,6 +88,7 @@ export default {
         const res = await targetsAPI.get(route.params.id)
         form.value = {
           tar_url: res.data.tar_url,
+          url_type: res.data.url_type || 'direct',
           image_tag: res.data.image_tag,
           schedule_type: res.data.schedule_type,
           schedule_value: res.data.schedule_value,
