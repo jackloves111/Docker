@@ -41,7 +41,7 @@ def create_app():
         config = {
             'app': {
                 'host': '0.0.0.0',
-                'port': 5000,
+                'port': 3006,
                 'debug': False,
                 'data_dir': '/config',
                 'log_level': 'INFO',
@@ -102,11 +102,12 @@ def create_app():
     socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
     logger.info("[启动] SocketIO 初始化完成")
 
-    from app.api import targets, tasks, scheduler as scheduler_api, notifications
+    from app.api import targets, tasks, scheduler as scheduler_api, notifications, env_editor
     app.register_blueprint(targets.bp)
     app.register_blueprint(tasks.bp)
     app.register_blueprint(scheduler_api.bp)
     app.register_blueprint(notifications.bp)
+    app.register_blueprint(env_editor.bp)
     logger.info("[启动] API 路由注册完成")
 
     from app.core.scheduler import init_scheduler

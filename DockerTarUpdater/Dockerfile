@@ -15,7 +15,7 @@ COPY config.yaml .
 
 RUN mkdir -p /config /tmp/dockertarupdater/downloads
 
-EXPOSE 5000
+EXPOSE 3006
 
 ENV PYTHONUNBUFFERED=1
 ENV CONFIG_PATH=/app/config.yaml

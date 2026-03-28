@@ -20,6 +20,12 @@
             <el-icon><Setting /></el-icon>
             <span>设置</span>
           </el-menu-item>
+          <a href="/env_editor/" target="_blank" style="text-decoration: none;">
+            <el-menu-item>
+              <el-icon><Edit /></el-icon>
+              <span>环境编辑器</span>
+            </el-menu-item>
+          </a>
         </el-menu>
       </el-aside>
       <el-container>
