@@ -38,17 +38,21 @@ def run_upgrade_task(target_id):
         cleanup = __import__('app.core.cleanup', fromlist=['Cleanup']).Cleanup()
         notifier = Notifier()
 
-        logger.debug(f"[升级任务] 获取容器 {target_name} 的当前信息...")
-        old_container_info = None
-        try:
-            old_container_info = __import__('app.utils.docker_client', fromlist=['get_container_info']).get_container_info(target_name)
-            if old_container_info:
-                logger.debug(f"[升级任务] 容器当前镜像ID: {old_container_info.get('image_id')}")
-        except Exception as e:
-            logger.warning(f"[升级任务] 获取容器信息失败: {e}")
-
-        old_image_id = old_container_info['image_id'] if old_container_info else None
-        logger.debug(f"[升级任务] 旧镜像ID: {old_image_id}")
+        logger.debug(f"[升级任务] 查找所有使用镜像 {image_tag} 的容器...")
+        get_containers_by_image = __import__('app.utils.docker_client', fromlist=['get_containers_by_image']).get_containers_by_image
+        matched_containers = get_containers_by_image(image_tag)
+        
+        # 收集所有旧镜像ID以便清理
+        old_image_ids = set()
+        for container in matched_containers:
+            if 'image_id' in container and container['image_id']:
+                old_image_ids.add(container['image_id'])
+                
+        # 生成简短的旧镜像ID字符串用于日志 (截取前12位)
+        old_image_id_str = ",".join([img.split(':')[-1][:12] if ':' in img else img[:12] for img in old_image_ids]) if old_image_ids else None
+        if old_image_id_str and len(old_image_id_str) > 120:
+            old_image_id_str = old_image_id_str[:117] + "..."
+        logger.debug(f"[升级任务] 匹配到 {len(matched_containers)} 个容器，旧镜像IDs: {old_image_ids}")
 
         logger.info(f"[升级任务] 发送升级开始通知...")
         notifier.notify_update_start(target_name, image_tag)
@@ -57,7 +61,7 @@ def run_upgrade_task(target_id):
         success, tar_path, error = downloader.download(tar_url, target_name)
         if not success:
             logger.error(f"[升级任务] 下载失败: {error}")
-            TaskLog.update(log_id, 'failed', error, old_image_id)
+            TaskLog.update(log_id, 'failed', error, old_image_id_str)
             Target.update_status(target_id, 'failed', error)
             notifier.notify_update_failed(target_name, error)
             return
@@ -68,35 +72,46 @@ def run_upgrade_task(target_id):
         success, image_id, error = loader.load(tar_path, image_tag)
         if not success:
             logger.error(f"[升级任务] 镜像加载失败: {error}")
-            TaskLog.update(log_id, 'failed', f"加载失败: {error}", old_image_id)
+            TaskLog.update(log_id, 'failed', f"加载失败: {error}", old_image_id_str)
             Target.update_status(target_id, 'failed', f"加载失败: {error}")
             notifier.notify_update_failed(target_name, f"加载失败: {error}")
             cleanup.cleanup_target_downloads(target_name, download_config.get('temp_dir', ''))
             return
 
         logger.info(f"[升级任务] 镜像加载成功，新镜像ID: {image_id}，开始重建容器...")
-        TaskLog.update(log_id, 'running', '正在重建容器...', old_image_id, image_id)
+        TaskLog.update(log_id, 'running', f'正在重建 {len(matched_containers)} 个容器...', old_image_id_str, image_id)
 
-        success, message = recreator.recreate(target_name, image_tag)
-        if not success:
-            logger.error(f"[升级任务] 容器重建失败: {message}")
-            TaskLog.update(log_id, 'failed', f"重建失败: {message}", old_image_id, image_id)
-            Target.update_status(target_id, 'failed', f"重建失败: {message}")
-            notifier.notify_update_failed(target_name, f"重建失败: {message}")
+        # 逐个重建所有匹配的容器
+        recreate_errors = []
+        for container in matched_containers:
+            container_name = container['name']
+            logger.info(f"[升级任务] 开始处理容器: {container_name}")
+            success, message = recreator.recreate(container_name, image_tag)
+            if not success:
+                logger.error(f"[升级任务] 容器 {container_name} 重建失败: {message}")
+                recreate_errors.append(f"{container_name}: {message}")
+        
+        if recreate_errors:
+            error_msg = "; ".join(recreate_errors)
+            TaskLog.update(log_id, 'failed', f"部分/全部重建失败: {error_msg}", old_image_id_str, image_id)
+            Target.update_status(target_id, 'failed', f"重建失败: {error_msg}")
+            notifier.notify_update_failed(target_name, f"重建失败: {error_msg}")
+            cleanup.cleanup_target_downloads(target_name, download_config.get('temp_dir', ''))
             return
 
         logger.info(f"[升级任务] 清理下载临时文件...")
         cleanup.cleanup_target_downloads(target_name, download_config.get('temp_dir', ''))
 
-        if old_image_id and old_image_id != image_id:
-            logger.info(f"[升级任务] 清理旧镜像: {old_image_id}")
-            cleanup.remove_old_image(old_image_id)
+        logger.info(f"[升级任务] 清理旧镜像...")
+        for old_id in old_image_ids:
+            if old_id != image_id:
+                cleanup.remove_old_image(old_id)
 
         logger.info(f"[升级任务] 升级成功完成！目标: {target_name}, 新镜像: {image_tag}")
-        TaskLog.update(log_id, 'success', f'已更新到 {image_tag}', old_image_id, image_id)
+        TaskLog.update(log_id, 'success', f'已更新 {len(matched_containers)} 个容器到 {image_tag}', old_image_id_str, image_id)
         Target.update_status(target_id, 'success', f'成功更新到 {image_tag}')
 
-        old_image_short = old_image_id[:12] if old_image_id else '未知'
+        old_image_short = next(iter(old_image_ids))[:12] if old_image_ids else '未知'
         notifier.notify_update_success(target_name, old_image_short, image_tag)
 
     except Exception as e:

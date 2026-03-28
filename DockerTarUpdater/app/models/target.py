@@ -20,7 +20,9 @@ class Target:
             return dict(zip(columns, row)) if row else None
 
     @staticmethod
-    def create(name, tar_url, image_tag, schedule_type='interval', schedule_value='360'):
+    def create(tar_url, image_tag, schedule_type='interval', schedule_value='360'):
+        import time
+        name = f"{image_tag.replace(':', '_').replace('/', '_')}_{int(time.time())}"
         with db.get_cursor() as cursor:
             cursor.execute('''
                 INSERT INTO targets (name, tar_url, image_tag, schedule_type, schedule_value)

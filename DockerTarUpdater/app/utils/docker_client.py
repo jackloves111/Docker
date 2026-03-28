@@ -14,6 +14,30 @@ def get_client():
         _client = docker.DockerClient(base_url=f'unix://{socket_path}')
     return _client
 
+def get_containers_by_image(image_tag):
+    logger.debug(f"[Docker客户端] 查找使用镜像的容器: {image_tag}")
+    client = get_client()
+    matched_containers = []
+    try:
+        # 模糊匹配：只要容器的 Image 配置中包含目标 image_tag 即可
+        for container in client.containers.list(all=True):
+            container_image = container.attrs['Config']['Image']
+            if image_tag in container_image:
+                info = container.attrs
+                matched_containers.append({
+                    'id': container.id,
+                    'short_id': container.short_id,
+                    'name': container.name,
+                    'image': container_image,
+                    'image_id': info['Image'],
+                    'status': container.status
+                })
+        logger.debug(f"[Docker客户端] 找到 {len(matched_containers)} 个匹配的容器")
+        return matched_containers
+    except Exception as e:
+        logger.error(f"[Docker客户端] 查找容器失败: {e}")
+        return []
+
 def get_container_info(container_name):
     logger.debug(f"[Docker客户端] 获取容器信息: {container_name}")
     client = get_client()

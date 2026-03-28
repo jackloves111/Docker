@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from app.utils.response import success, error
 from app.models.target import Target
 from app.models.task import TaskLog
-from app.utils.docker_client import get_container_info, list_containers
+from app.utils.docker_client import get_container_info, list_containers, get_containers_by_image
 from app.core.scheduler import add_job, remove_job
 from app.core.engine import trigger_upgrade
 import threading
@@ -36,26 +36,24 @@ def create_target():
         logger.warning("[API] 创建目标失败: 无效的请求数据")
         return error('无效的请求数据')
 
-    name = data.get('name')
     tar_url = data.get('tar_url')
     image_tag = data.get('image_tag')
 
-    logger.debug(f"[API] 创建目标数据: name={name}, tar_url={tar_url}, image_tag={image_tag}")
+    logger.debug(f"[API] 创建目标数据: tar_url={tar_url}, image_tag={image_tag}")
 
-    if not all([name, tar_url, image_tag]):
+    if not all([tar_url, image_tag]):
         logger.warning("[API] 创建目标失败: 缺少必填字段")
         return error('缺少必填字段')
 
     try:
         target_id = Target.create(
-            name=name,
             tar_url=tar_url,
             image_tag=image_tag,
             schedule_type=data.get('schedule_type', 'interval'),
             schedule_value=data.get('schedule_value', '360')
         )
 
-        logger.info(f"[API] 目标创建成功: ID={target_id}, 名称={name}")
+        logger.info(f"[API] 目标创建成功: ID={target_id}")
 
         target = Target.get_by_id(target_id)
         if target.get('enabled'):
@@ -80,7 +78,7 @@ def update_target(target_id):
         logger.warning(f"[API] 更新目标失败: 目标 {target_id} 不存在")
         return error('目标不存在', 404)
 
-    allowed_fields = ['name', 'tar_url', 'image_tag', 'schedule_type', 'schedule_value', 'enabled']
+    allowed_fields = ['tar_url', 'image_tag', 'schedule_type', 'schedule_value', 'enabled']
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     logger.debug(f"[API] 更新字段: {update_data}")
 
@@ -143,13 +141,13 @@ def get_target_info(target_id):
         return error('目标不存在', 404)
 
     try:
-        container_info = get_container_info(target['name'])
-        if container_info:
-            logger.debug(f"[API] 容器信息获取成功: {target['name']}")
-            return success(container_info)
+        matched_containers = get_containers_by_image(target['image_tag'])
+        if matched_containers:
+            logger.debug(f"[API] 容器信息获取成功，找到 {len(matched_containers)} 个相关容器")
+            return success({'containers': matched_containers})
         else:
-            logger.warning(f"[API] 容器未找到: {target['name']}")
-            return success({'status': 'not_found'}, '容器未找到')
+            logger.warning(f"[API] 未找到匹配的容器: {target['image_tag']}")
+            return success({'status': 'not_found', 'containers': []}, '未找到匹配的容器')
     except Exception as e:
         logger.error(f"[API] 获取容器信息异常: {e}")
         return error(f'获取容器信息失败: {str(e)}')

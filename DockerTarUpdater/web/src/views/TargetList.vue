@@ -6,7 +6,7 @@
     </div>
 
     <el-table :data="targets" style="width: 100%" v-loading="loading">
-      <el-table-column prop="name" label="容器名称" width="150" />
+      <el-table-column prop="name" label="目标名称/标识" width="150" />
       <el-table-column prop="tar_url" label="Tar URL" show-overflow-tooltip />
       <el-table-column prop="image_tag" label="镜像标签" width="180" />
       <el-table-column prop="schedule_type" label="调度类型" width="120">
@@ -38,14 +38,16 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showInfo" title="容器信息" width="600px">
-      <el-descriptions v-if="containerInfo" :column="2" border>
-        <el-descriptions-item label="名称">{{ containerInfo.name }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ containerInfo.status }}</el-descriptions-item>
-        <el-descriptions-item label="镜像">{{ containerInfo.image }}</el-descriptions-item>
-        <el-descriptions-item label="镜像ID">{{ containerInfo.image_id }}</el-descriptions-item>
-      </el-descriptions>
-      <el-empty v-else description="容器未找到或未运行" />
+    <el-dialog v-model="showInfo" title="匹配的容器信息" width="800px">
+      <div v-if="containerInfo && containerInfo.length > 0">
+        <el-table :data="containerInfo" border>
+          <el-table-column prop="name" label="名称" width="150" />
+          <el-table-column prop="status" label="状态" width="100" />
+          <el-table-column prop="image" label="镜像" />
+          <el-table-column prop="image_id" label="镜像ID" show-overflow-tooltip />
+        </el-table>
+      </div>
+      <el-empty v-else description="未找到匹配的容器" />
     </el-dialog>
   </div>
 </template>
@@ -78,10 +80,10 @@ export default {
     const viewInfo = async (row) => {
       try {
         const res = await targetsAPI.getInfo(row.id)
-        containerInfo.value = res.data
+        containerInfo.value = res.data.containers || []
         showInfo.value = true
       } catch (e) {
-        containerInfo.value = null
+        containerInfo.value = []
         showInfo.value = true
       }
     }

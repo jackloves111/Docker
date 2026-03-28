@@ -7,10 +7,6 @@
 
     <el-card>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="140px">
-        <el-form-item label="容器名称" prop="name">
-          <el-input v-model="form.name" placeholder="例如: my-app" />
-        </el-form-item>
-
         <el-form-item label="Tar URL" prop="tar_url">
           <el-input v-model="form.tar_url" placeholder="https://example.com/image.tar" />
         </el-form-item>
@@ -65,7 +61,6 @@ export default {
     const isEdit = computed(() => !!route.params.id)
 
     const form = ref({
-      name: '',
       tar_url: '',
       image_tag: '',
       schedule_type: 'interval',
@@ -74,7 +69,6 @@ export default {
     })
 
     const rules = {
-      name: [{ required: true, message: '请输入容器名称', trigger: 'blur' }],
       tar_url: [{ required: true, message: '请输入 Tar URL', trigger: 'blur' }],
       image_tag: [{ required: true, message: '请输入镜像标签', trigger: 'blur' }],
       schedule_value: [{ required: true, message: '请输入调度值', trigger: 'blur' }]
@@ -85,7 +79,6 @@ export default {
       try {
         const res = await targetsAPI.get(route.params.id)
         form.value = {
-          name: res.data.name,
           tar_url: res.data.tar_url,
           image_tag: res.data.image_tag,
           schedule_type: res.data.schedule_type,
