@@ -113,6 +113,10 @@ def run_upgrade_task(target_id):
 
 def trigger_upgrade(target_id):
     logger.info(f"[触发升级] 收到升级请求，目标ID: {target_id}")
-    from app import app
+    from app import get_app
+    app = get_app()
+    if app is None:
+        logger.error("[触发升级] Flask 应用未初始化")
+        return
     with app.app_context():
         run_upgrade_task(target_id)

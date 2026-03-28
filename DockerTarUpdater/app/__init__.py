@@ -6,6 +6,10 @@ import os
 import logging
 
 socketio = SocketIO()
+_app = None
+
+def get_app():
+    return _app
 
 def setup_logging(config):
     log_level = config.get('app', {}).get('log_level', 'INFO')
@@ -24,7 +28,9 @@ def setup_logging(config):
     return logging.getLogger(__name__)
 
 def create_app():
+    global _app
     app = Flask(__name__)
+    _app = app
 
     config_path = os.environ.get('CONFIG_PATH', '/app/config.yaml')
     if os.path.exists(config_path):
