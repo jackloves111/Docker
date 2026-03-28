@@ -17,7 +17,10 @@ class Database:
         self._init_tables()
 
     def _get_connection(self):
-        return sqlite3.connect(self._db_path)
+        conn = sqlite3.connect(self._db_path, timeout=30)
+        conn.execute('PRAGMA journal_mode=WAL')
+        conn.execute('PRAGMA busy_timeout=30000')
+        return conn
 
     @contextmanager
     def get_cursor(self):
