@@ -8,19 +8,19 @@
         <el-button type="primary" size="small" @click="addNotification">添加</el-button>
       </template>
 
-      <el-table :data="notifications" style="width: 100%">
-        <el-table-column prop="name" label="名称" width="150" />
-        <el-table-column prop="type" label="类型" width="120">
+      <el-table :data="notifications" style="width: 100%" :table-layout="isMobile ? 'auto' : 'fixed'">
+        <el-table-column prop="name" label="名称" min-width="100" />
+        <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">
             <el-tag>{{ row.type }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="enabled" label="启用" width="100">
+        <el-table-column prop="enabled" label="启用" width="80">
           <template #default="{ row }">
             <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '是' : '否' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="auto" min-width="100">
           <template #default="{ row }">
             <el-button size="small" type="danger" @click="deleteNotification(row)">删除</el-button>
           </template>
@@ -68,6 +68,11 @@ export default {
       type: 'web',
       config: { webhook: '' }
     })
+    const isMobile = ref(window.innerWidth < 768)
+
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth < 768
+    })
 
     const loadNotifications = async () => {
       try {
@@ -109,7 +114,7 @@ export default {
       loadNotifications()
     })
 
-    return { notifications, showAddDialog, newNotif, addNotification, createNotification, deleteNotification }
+    return { notifications, showAddDialog, newNotif, isMobile, addNotification, createNotification, deleteNotification }
   }
 }
 </script>

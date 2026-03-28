@@ -2,7 +2,7 @@
   <div class="dashboard">
     <h2>控制台</h2>
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-card">
             <div class="stat-value">{{ stats.targets.total }}</div>
@@ -10,7 +10,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-card">
             <div class="stat-value">{{ stats.targets.enabled }}</div>
@@ -18,7 +18,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-card">
             <div class="stat-value success">{{ stats.tasks.success || 0 }}</div>
@@ -26,7 +26,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-card">
             <div class="stat-value danger">{{ stats.tasks.failed || 0 }}</div>

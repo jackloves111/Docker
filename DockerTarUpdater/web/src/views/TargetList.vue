@@ -5,27 +5,27 @@
       <el-button type="primary" @click="$router.push('/targets/edit')">添加目标</el-button>
     </div>
 
-    <el-table :data="targets" style="width: 100%" v-loading="loading">
-      <el-table-column prop="name" label="目标名称/标识" width="150" />
-      <el-table-column prop="tar_url" label="Tar URL" show-overflow-tooltip>
+    <el-table :data="targets" style="width: 100%" v-loading="loading" :table-layout="isMobile ? 'auto' : 'fixed'">
+      <el-table-column prop="name" label="目标名称/标识" min-width="120" />
+      <el-table-column prop="tar_url" label="Tar URL" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.tar_url }}
           <el-tag v-if="row.url_type === 'api'" type="warning" size="small" style="margin-left: 4px">API</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="image_tag" label="镜像标签" width="180" />
-      <el-table-column prop="schedule_type" label="调度类型" width="120">
+      <el-table-column prop="image_tag" label="镜像标签" min-width="120" />
+      <el-table-column prop="schedule_type" label="调度类型" width="100">
         <template #default="{ row }">
           {{ row.schedule_type === 'cron' ? 'Cron' : '间隔' }}
         </template>
       </el-table-column>
-      <el-table-column prop="schedule_value" label="调度值" width="120" />
-      <el-table-column prop="enabled" label="状态" width="100">
+      <el-table-column prop="schedule_value" label="调度值" width="100" />
+      <el-table-column prop="enabled" label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '已启用' : '已禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="last_update_status" label="最后更新" width="120">
+      <el-table-column prop="last_update_status" label="最后更新" width="90">
         <template #default="{ row }">
           <el-tag v-if="row.last_update_status" :type="getStatusType(row.last_update_status)">
             {{ row.last_update_status }}
@@ -33,7 +33,7 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column label="操作" width="auto" min-width="220">
         <template #default="{ row }">
           <el-button size="small" @click="viewInfo(row)">详情</el-button>
           <el-button size="small" type="primary" @click="$router.push(`/targets/edit/${row.id}`)">编辑</el-button>
@@ -69,6 +69,11 @@ export default {
     const loading = ref(false)
     const showInfo = ref(false)
     const containerInfo = ref(null)
+    const isMobile = ref(window.innerWidth < 768)
+
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth < 768
+    })
 
     const loadTargets = async () => {
       loading.value = true
@@ -127,7 +132,7 @@ export default {
       loadTargets()
     })
 
-    return { targets, loading, showInfo, containerInfo, viewInfo, triggerUpgrade, deleteTarget, getStatusType }
+    return { targets, loading, showInfo, containerInfo, isMobile, viewInfo, triggerUpgrade, deleteTarget, getStatusType }
   }
 }
 </script>

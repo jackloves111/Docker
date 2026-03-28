@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, TypedDict
 
-from flask import Blueprint, Response, abort, jsonify, render_template, request
+from flask import Blueprint, Response, abort, jsonify, request
 
 
 QuoteStyle = Literal["none", "single", "double"]
@@ -241,15 +241,6 @@ def _update_env_file(path: Path, payload: dict[str, Any]) -> None:
 
 
 bp = Blueprint("env_editor", __name__)
-
-
-@bp.get("/env_editor/")
-def index() -> str:
-    return render_template(
-        "env_editor.html",
-        env_root=_env_root().as_posix(),
-        env_filename=_env_filename(),
-    )
 
 
 @bp.get("/api/env_editor/files")

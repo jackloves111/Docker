@@ -3,33 +3,33 @@
     <h2>任务日志</h2>
 
     <el-card shadow="hover">
-      <el-table :data="tasks" style="width: 100%" v-loading="loading">
-        <el-table-column prop="target_name" label="目标名称" width="150" />
-        <el-table-column prop="action" label="操作" width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+      <el-table :data="tasks" style="width: 100%" v-loading="loading" :table-layout="isMobile ? 'auto' : 'fixed'">
+        <el-table-column prop="target_name" label="目标名称" min-width="100" />
+        <el-table-column prop="action" label="操作" width="80" />
+        <el-table-column prop="status" label="状态" width="70">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="消息" show-overflow-tooltip />
-        <el-table-column label="镜像" width="200">
+        <el-table-column prop="message" label="消息" min-width="120" show-overflow-tooltip />
+        <el-table-column label="镜像" min-width="120">
           <template #default="{ row }">
             <span v-if="row.old_image_id">旧: {{ row.old_image_id.substring(0, 12) }}</span>
             <br v-if="row.old_image_id && row.new_image_id">
             <span v-if="row.new_image_id">新: {{ row.new_image_id.substring(0, 12) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="started_at" label="开始时间" width="180">
+        <el-table-column prop="started_at" label="开始时间" width="140">
           <template #default="{ row }">
             {{ formatTime(row.started_at) }}
           </template>
         </el-table-column>
-        <el-table-column prop="finished_at" label="结束时间" width="180">
+        <el-table-column prop="finished_at" label="结束时间" width="140">
           <template #default="{ row }">
             {{ formatTime(row.finished_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="耗时" width="100">
+        <el-table-column label="耗时" width="70">
           <template #default="{ row }">
             {{ getDuration(row.started_at, row.finished_at) }}
           </template>
@@ -48,6 +48,11 @@ export default {
   setup() {
     const tasks = ref([])
     const loading = ref(false)
+    const isMobile = ref(window.innerWidth < 768)
+
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth < 768
+    })
 
     const loadTasks = async () => {
       loading.value = true
@@ -85,7 +90,7 @@ export default {
       loadTasks()
     })
 
-    return { tasks, loading, getStatusType, formatTime, getDuration }
+    return { tasks, loading, isMobile, getStatusType, formatTime, getDuration }
   }
 }
 </script>

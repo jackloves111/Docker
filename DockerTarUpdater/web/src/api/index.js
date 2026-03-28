@@ -50,4 +50,10 @@ export const notificationsAPI = {
   webRead: (ids) => api.put('/notifications/web/read', { ids })
 }
 
+export const envEditorAPI = {
+  files: () => api.get('/env_editor/files'),
+  env: (path) => api.get('/env_editor/env', { params: { path } }),
+  save: (path, entries, upserts) => api.put('/env_editor/env', { path, entries, upserts })
+}
+
 export default api

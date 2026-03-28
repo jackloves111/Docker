@@ -1,9 +1,13 @@
 <template>
   <div id="app">
+    <div v-if="isMobile && !isCollapse" class="sidebar-overlay" @click="isCollapse = true"></div>
     <el-container class="app-container">
-      <el-aside width="200px">
-        <div class="logo">Docker镜像更新器</div>
-        <el-menu :default-active="$route.path" router>
+      <el-aside :class="['sidebar', { 'v-hidden': isCollapse }]">
+        <div class="logo">
+          <el-icon v-if="isCollapse" :size="24"><Box /></el-icon>
+          <span v-else>Docker镜像更新器</span>
+        </div>
+        <el-menu :default-active="$route.path" router :collapse="isCollapse" :collapse-transition="false">
           <el-menu-item index="/">
             <el-icon><HomeFilled /></el-icon>
             <span>控制台</span>
@@ -29,6 +33,9 @@
       <el-container>
         <el-header>
           <div class="header-content">
+            <el-button text @click="isCollapse = !isCollapse" class="collapse-btn">
+              <el-icon :size="20"><Expand v-if="isCollapse" /><Fold v-else /></el-icon>
+            </el-button>
             <span class="scheduler-status">
               <el-tag :type="schedulerRunning ? 'success' : 'danger'">
                 调度器: {{ schedulerRunning ? '运行中' : '已停止' }}
@@ -76,11 +83,27 @@ import { schedulerAPI, notificationsAPI } from './api'
 export default {
   name: 'App',
   setup() {
+    const isCollapse = ref(false)
     const schedulerRunning = ref(false)
     const showNotifications = ref(false)
     const notifications = ref([])
     const unreadCount = ref(0)
     let pollInterval = null
+
+    const isMobile = ref(window.innerWidth < 768)
+
+    const updateMobile = () => {
+      isMobile.value = window.innerWidth < 768
+    }
+
+    onMounted(() => {
+      window.addEventListener('resize', updateMobile)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateMobile)
+      if (pollInterval) clearInterval(pollInterval)
+    })
 
     const loadSchedulerStatus = async () => {
       try {
@@ -140,11 +163,9 @@ export default {
       }, 5000)
     })
 
-    onUnmounted(() => {
-      if (pollInterval) clearInterval(pollInterval)
-    })
-
     return {
+      isMobile,
+      isCollapse,
       schedulerRunning,
       showNotifications,
       notifications,
@@ -164,17 +185,32 @@ export default {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, #app { height: 100%; }
 .app-container { height: 100%; }
-.el-aside { background: #1a1a2e; height: 100%; }
-.logo { color: #fff; padding: 20px; font-size: 18px; font-weight: bold; text-align: center; }
+.sidebar { background: #1a1a2e; height: 100%; transition: transform 0.3s, width 0.3s; }
+.logo { color: #fff; padding: 20px 10px; font-size: 16px; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; }
 .el-menu { border: none; background: transparent; }
 .el-menu-item { color: #fff; }
 .el-menu-item:hover { background: #16213e; }
 .el-header { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; }
-.header-content { display: flex; align-items: center; gap: 20px; width: 100%; }
+.header-content { display: flex; align-items: center; gap: 12px; width: 100%; }
 .scheduler-status { margin-right: auto; }
 .notification-badge { margin-left: 10px; }
 .notification-item { padding: 10px; border-bottom: 1px solid #eee; }
 .notification-item strong { display: block; margin: 5px 0; }
 .notification-item p { margin: 5px 0; color: #666; font-size: 14px; }
 .notification-item small { color: #999; }
+.collapse-btn { padding: 8px; }
+.sidebar-overlay { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+
+@media (min-width: 769px) {
+  .sidebar { width: 200px; }
+  .sidebar.v-hidden { width: 64px; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 1000; transform: translateX(0); width: 200px !important; }
+  .sidebar.v-hidden { transform: translateX(-100%); }
+  .el-header { padding-left: 10px; }
+  .header-content { gap: 8px; }
+  .scheduler-status { font-size: 12px; }
+}
 </style>
