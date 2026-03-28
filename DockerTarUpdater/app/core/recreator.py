@@ -71,6 +71,8 @@ class Recreater:
 
     def _create_container(self, config: dict, new_image: str, container_name: str):
         try:
+            import docker
+
             logger.debug(f"[重建器] 构建容器创建参数...")
 
             host_config = config.get('host_config', {})
@@ -104,6 +106,15 @@ class Recreater:
             cpu_period = host_config.get('CpuPeriod')
             cpu_quota = host_config.get('CpuQuota')
 
+            hc = docker.types.HostConfig(
+                port_bindings=port_map if port_map else None,
+                binds=binds if binds else None,
+                restart_policy={'Name': restart_policy_name},
+                memory=memory if memory else None,
+                cpu_period=cpu_period,
+                cpu_quota=cpu_quota,
+            )
+
             create_params = {
                 'name': container_name,
                 'image': new_image,
@@ -112,15 +123,8 @@ class Recreater:
                 'entrypoint': config.get('entrypoint'),
                 'working_dir': config.get('working_dir'),
                 'ports': list(port_map.keys()) if port_map else None,
-                'volumes': [m['Destination'] for m in config.get('mounts', [])],
-                'host_config': {
-                    'PortBindings': port_map,
-                    'Binds': binds,
-                    'RestartPolicy': {'Name': restart_policy_name},
-                    'Memory': memory if memory else None,
-                    'CpuPeriod': cpu_period,
-                    'CpuQuota': cpu_quota,
-                },
+                'volumes': [m['Destination'] for m in config.get('mounts', [])] if config.get('mounts') else None,
+                'host_config': hc,
                 'networking_config': networking_config if networking_config else None,
             }
 
