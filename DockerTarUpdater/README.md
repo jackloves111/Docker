@@ -26,7 +26,7 @@ docker run -d \
   --name dockertarupdater \
   -p 5000:5000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /data/dockertarupdater:/data/dockertarupdater \
+  -v /config:/config \
   nobody114/dockertarupdater:latest
 ```
 
@@ -46,7 +46,7 @@ docker run -d \
   --name dockertarupdater \
   -p 5000:5000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /data/dockertarupdater:/data/dockertarupdater \
+  -v /config:/config \
   dockertarupdater:latest
 ```
 
@@ -80,9 +80,9 @@ app:
   host: "0.0.0.0"
   port: 5000
   debug: false
-  data_dir: "/data/dockertarupdater"
+  data_dir: "/config"
   log_level: "INFO"
-  log_file: "/data/dockertarupdater/updater.log"
+  log_file: "/config/updater.log"
 
 docker:
   socket_path: "/var/run/docker.sock"

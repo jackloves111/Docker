@@ -13,7 +13,7 @@ def get_app():
 
 def setup_logging(config):
     log_level = config.get('app', {}).get('log_level', 'INFO')
-    log_file = config.get('app', {}).get('log_file', '/data/dockertarupdater/updater.log')
+    log_file = config.get('app', {}).get('log_file', '/config/updater.log')
     log_dir = os.path.dirname(log_file)
     os.makedirs(log_dir, exist_ok=True)
 
@@ -43,9 +43,9 @@ def create_app():
                 'host': '0.0.0.0',
                 'port': 5000,
                 'debug': False,
-                'data_dir': '/data/dockertarupdater',
+                'data_dir': '/config',
                 'log_level': 'INFO',
-                'log_file': '/data/dockertarupdater/updater.log'
+                'log_file': '/config/updater.log'
             },
             'docker': {
                 'socket_path': '/var/run/docker.sock'

@@ -11,7 +11,7 @@ class Database:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def init(self, data_dir='/data/dockertarupdater'):
+    def init(self, data_dir='/config'):
         os.makedirs(data_dir, exist_ok=True)
         self._db_path = os.path.join(data_dir, 'dockertarupdater.db')
         self._init_tables()

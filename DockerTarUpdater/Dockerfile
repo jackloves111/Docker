@@ -13,7 +13,7 @@ RUN cd web && npm install && npm run build
 COPY app/ ./app/
 COPY config.yaml .
 
-RUN mkdir -p /data/dockertarupdater /tmp/dockertarupdater/downloads
+RUN mkdir -p /config /tmp/dockertarupdater/downloads
 
 EXPOSE 5000
 
