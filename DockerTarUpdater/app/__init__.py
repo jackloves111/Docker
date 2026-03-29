@@ -123,5 +123,9 @@ def create_app():
     init_scheduler(app)
     logger.info("[启动] 调度器初始化完成")
 
+    from app.api.docker import init_health_checker
+    init_health_checker(app)
+    logger.info("[启动] Docker健康检查器初始化完成")
+
     logger.info("[启动] Docker镜像更新器启动成功！")
     return app
