@@ -92,23 +92,17 @@ class Recreater:
             return False, f"重建异常: {e}"
 
     def _extract_create_kwargs(self, container) -> dict:
-        """从现有容器提取用于创建新容器的全量配置参数"""
+        """从现有容器提取用于创建新容器的全量配置参数，排除应由新镜像决定的配置项"""
         attrs = container.attrs
         config = attrs.get('Config', {})
         host_config = attrs.get('HostConfig', {})
         network_settings = attrs.get('NetworkSettings', {})
 
+        # 注意：此处不提取 command(Cmd), user(User), working_dir(WorkingDir), labels(Labels)
+        # 让这些参数在创建新容器时，自然继承新版镜像的默认值
         kwargs = {
-            'command': config.get('Cmd'),
-            'entrypoint': config.get('Entrypoint'),
             'environment': config.get('Env'),
             'hostname': config.get('Hostname'),
-            'domainname': config.get('Domainname'),
-            'user': config.get('User'),
-            'mac_address': config.get('MacAddress'),
-            'working_dir': config.get('WorkingDir'),
-            'labels': config.get('Labels'),
-            'stop_signal': config.get('StopSignal'),
             'tty': config.get('Tty'),
             'stdin_open': config.get('OpenStdin'),
             'detach': True,
