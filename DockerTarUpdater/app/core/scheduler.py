@@ -13,6 +13,18 @@ _scheduler_running = False
 
 DEFAULT_TIMEZONE = 'Asia/Shanghai'
 
+def _get_setting(key, default=None):
+    from app.db.database import db
+    with db.get_cursor() as cursor:
+        cursor.execute('SELECT value FROM settings WHERE key = ?', (key,))
+        row = cursor.fetchone()
+        return row[0] if row else default
+
+def _set_setting(key, value):
+    from app.db.database import db
+    with db.get_cursor() as cursor:
+        cursor.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, str(value)))
+
 def init_scheduler(app):
     global _scheduler, _app
     _app = app
@@ -26,11 +38,12 @@ def init_scheduler(app):
     for target in targets:
         add_job(target)
 
-    if app.config['APP_CONFIG']['scheduler'].get('default_enabled', True):
-        logger.info("[调度器] 默认启用调度器")
+    scheduler_enabled = _get_setting('scheduler_enabled', 'true') == 'true'
+    if scheduler_enabled:
+        logger.info("[调度器] 数据库配置为启用调度器")
         start_scheduler()
     else:
-        logger.info("[调度器] 默认禁用调度器")
+        logger.info("[调度器] 数据库配置为禁用调度器")
 
     logger.info("[调度器] 调度器初始化完成")
 
@@ -96,6 +109,7 @@ def start_scheduler():
     if _scheduler and not _scheduler_running:
         _scheduler.start()
         _scheduler_running = True
+        _set_setting('scheduler_enabled', 'true')
         logger.info("[调度器] 调度器已启动")
 
 def stop_scheduler():
@@ -103,6 +117,7 @@ def stop_scheduler():
     if _scheduler and _scheduler_running:
         _scheduler.shutdown(wait=False)
         _scheduler_running = False
+        _set_setting('scheduler_enabled', 'false')
         logger.info("[调度器] 调度器已停止")
 
 def get_scheduler_status():

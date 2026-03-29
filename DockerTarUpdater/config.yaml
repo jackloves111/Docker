@@ -9,10 +9,6 @@ app:
 docker:
   socket_path: "/var/run/docker.sock"
 
-scheduler:
-  default_interval: 60
-  default_enabled: true
-
 download:
   temp_dir: "/tmp/dockertarupdater/downloads"
   timeout: 300

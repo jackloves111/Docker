@@ -94,4 +94,13 @@ class Database:
                 )
             ''')
 
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS settings (
+                    key VARCHAR(64) PRIMARY KEY,
+                    value TEXT
+                )
+            ''')
+
+            cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('scheduler_enabled', 'true')")
+
 db = Database()

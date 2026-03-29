@@ -62,10 +62,6 @@ def create_app():
             'docker': {
                 'socket_path': '/var/run/docker.sock'
             },
-            'scheduler': {
-                'default_interval': 60,
-                'default_enabled': True
-            },
             'download': {
                 'temp_dir': '/tmp/dockertarupdater/downloads',
                 'timeout': 300,
