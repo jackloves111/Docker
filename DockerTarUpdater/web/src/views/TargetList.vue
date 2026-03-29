@@ -16,7 +16,7 @@
       <el-table-column prop="image_tag" label="镜像标签" min-width="120" />
       <el-table-column prop="schedule_type" label="调度类型" width="100">
         <template #default="{ row }">
-          {{ row.schedule_type === 'cron' ? 'Cron' : '间隔' }}
+          {{ row.schedule_type === 'cron' ? 'Cron' : row.schedule_type === 'manual' ? '手动' : '间隔' }}
         </template>
       </el-table-column>
       <el-table-column prop="schedule_value" label="调度值" width="100" />

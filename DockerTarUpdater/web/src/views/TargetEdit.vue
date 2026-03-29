@@ -36,10 +36,11 @@
           <el-radio-group v-model="form.schedule_type">
             <el-radio label="interval">间隔</el-radio>
             <el-radio label="cron">Cron</el-radio>
+            <el-radio label="manual">手动</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="调度值" prop="schedule_value">
+        <el-form-item label="调度值" prop="schedule_value" v-if="form.schedule_type !== 'manual'">
           <el-input v-if="form.schedule_type === 'interval'" v-model="form.schedule_value" placeholder="分钟数, 例如: 360">
             <template #append>分钟</template>
           </el-input>

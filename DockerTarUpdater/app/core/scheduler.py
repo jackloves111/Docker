@@ -53,6 +53,11 @@ def add_job(target):
         logger.warning("[调度器] 调度器未初始化，无法添加任务")
         return
 
+    schedule_type = target.get('schedule_type', 'interval')
+    if schedule_type == 'manual':
+        logger.info(f"[调度器] 目标 {target['name']} 为手动调度类型，跳过任务添加")
+        return
+
     job_id = f"target_{target['id']}"
 
     if _scheduler.get_job(job_id):
