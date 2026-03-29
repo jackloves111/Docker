@@ -50,6 +50,10 @@ export const notificationsAPI = {
   webRead: (ids) => api.put('/notifications/web/read', { ids })
 }
 
+export const dockerAPI = {
+  health: () => api.get('/docker/health')
+}
+
 export const envEditorAPI = {
   files: () => api.get('/env_editor/files'),
   env: (path) => api.get('/env_editor/env', { params: { path } }),

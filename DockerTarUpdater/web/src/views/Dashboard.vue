@@ -1,6 +1,17 @@
 <template>
   <div class="dashboard">
     <h2>控制台</h2>
+
+    <el-alert
+      v-if="dockerConnected === false"
+      title="Docker 连接失败"
+      type="warning"
+      description="无法连接到 Docker daemon，请检查容器是否正确映射了 /var/run/docker.sock"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    />
+
     <el-row :gutter="20" class="stats-row">
       <el-col :xs="12" :sm="12" :md="6">
         <el-card>
@@ -61,13 +72,14 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { tasksAPI } from '../api'
+import { tasksAPI, dockerAPI } from '../api'
 
 export default {
   name: 'Dashboard',
   setup() {
     const stats = ref({ targets: { total: 0, enabled: 0 }, tasks: { success: 0, failed: 0 } })
     const recentTasks = ref([])
+    const dockerConnected = ref(null)
 
     const loadStats = async () => {
       try {
@@ -97,12 +109,22 @@ export default {
       return new Date(time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
     }
 
+    const checkDockerHealth = async () => {
+      try {
+        const res = await dockerAPI.health()
+        dockerConnected.value = res.data.connected
+      } catch (e) {
+        dockerConnected.value = false
+      }
+    }
+
     onMounted(() => {
       loadStats()
       loadRecentTasks()
+      checkDockerHealth()
     })
 
-    return { stats, recentTasks, getStatusType, formatTime }
+    return { stats, recentTasks, dockerConnected, getStatusType, formatTime }
   }
 }
 </script>
