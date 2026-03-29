@@ -5,6 +5,16 @@
       <el-button @click="$router.push('/targets')">返回</el-button>
     </div>
 
+    <el-alert
+      v-if="dockerConnected === false"
+      title="Docker 连接失败"
+      type="warning"
+      description="无法连接到 Docker daemon，请检查容器是否正确映射了 /var/run/docker.sock"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    />
+
     <el-card>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="140px">
         <el-form-item label="Tar URL" prop="tar_url">
@@ -54,7 +64,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { targetsAPI } from '../api'
+import { targetsAPI, dockerAPI } from '../api'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -64,6 +74,7 @@ export default {
     const route = useRoute()
     const formRef = ref(null)
     const saving = ref(false)
+    const dockerConnected = ref(null)
 
     const isEdit = computed(() => !!route.params.id)
 
@@ -118,11 +129,21 @@ export default {
       }
     }
 
+    const checkDockerHealth = async () => {
+      try {
+        const res = await dockerAPI.health()
+        dockerConnected.value = res.data.connected
+      } catch (e) {
+        dockerConnected.value = false
+      }
+    }
+
     onMounted(() => {
       loadTarget()
+      checkDockerHealth()
     })
 
-    return { form, rules, formRef, saving, isEdit, submit }
+    return { form, rules, formRef, saving, isEdit, dockerConnected, submit }
   }
 }
 </script>
