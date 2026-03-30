@@ -91,7 +91,9 @@ def add_job(target):
         trigger=trigger,
         id=job_id,
         args=[target['id']],
-        replace_existing=True
+        replace_existing=True,
+        misfire_grace_time=60,
+        coalesce=True
     )
 
     logger.info(f"[调度器] 任务添加成功: {target['name']}")
