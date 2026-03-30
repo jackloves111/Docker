@@ -14,9 +14,9 @@
         <el-table-column prop="message" label="消息" min-width="120" show-overflow-tooltip />
         <el-table-column label="镜像" min-width="120">
           <template #default="{ row }">
-            <span v-if="row.old_image_id">旧: {{ row.old_image_id.substring(0, 12) }}</span>
+            <span v-if="row.old_image_id">旧: {{ row.old_image_id.includes(':') ? row.old_image_id.split(':')[-1] : row.old_image_id }}</span>
             <br v-if="row.old_image_id && row.new_image_id">
-            <span v-if="row.new_image_id">新: {{ row.new_image_id.substring(0, 12) }}</span>
+            <span v-if="row.new_image_id">新: {{ row.new_image_id.includes(':') ? row.new_image_id.split(':')[-1] : row.new_image_id }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="started_at" label="开始时间" width="140">

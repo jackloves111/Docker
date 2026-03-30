@@ -67,7 +67,10 @@ def run_upgrade_task(target_id):
                 old_image_ids.add(container['image_id'])
                 
         # 生成简短的旧镜像ID字符串用于日志 (截取前12位)
-        old_image_id_str = ",".join([img.split(':')[-1][:12] if ':' in img else img[:12] for img in old_image_ids]) if old_image_ids else None
+        def _short_id(img_id):
+            return img_id.split(':')[-1][:12] if ':' in img_id else img_id[:12]
+
+        old_image_id_str = ",".join([_short_id(img) for img in old_image_ids]) if old_image_ids else None
         if old_image_id_str and len(old_image_id_str) > 120:
             old_image_id_str = old_image_id_str[:117] + "..."
         logger.debug(f"[升级任务] 匹配到 {len(matched_containers)} 个容器，旧镜像IDs: {old_image_ids}")
@@ -100,7 +103,7 @@ def run_upgrade_task(target_id):
             return
 
         logger.info(f"[升级任务] 镜像加载成功，新镜像ID: {image_id}，开始重建容器...")
-        TaskLog.update(log_id, 'running', f'正在重建 {len(matched_containers)} 个容器...', old_image_id_str, image_id)
+        TaskLog.update(log_id, 'running', f'正在重建 {len(matched_containers)} 个容器...', old_image_id_str, _short_id(image_id))
 
         # 逐个重建所有匹配的容器
         recreate_errors = []
@@ -114,7 +117,7 @@ def run_upgrade_task(target_id):
         
         if recreate_errors:
             error_msg = "; ".join(recreate_errors)
-            TaskLog.update(log_id, 'failed', f"部分/全部重建失败: {error_msg}", old_image_id_str, image_id)
+            TaskLog.update(log_id, 'failed', f"部分/全部重建失败: {error_msg}", old_image_id_str, _short_id(image_id))
             Target.update_status(target_id, 'failed', f"重建失败: {error_msg}")
             notifier.notify_update_failed(target_name, f"重建失败: {error_msg}")
             cleanup.cleanup_target_downloads(target_name, download_config.get('temp_dir', ''))
@@ -129,10 +132,10 @@ def run_upgrade_task(target_id):
                 cleanup.remove_old_image(old_id)
 
         logger.info(f"[升级任务] 升级成功完成！目标: {target_name}, 新镜像: {image_tag}")
-        TaskLog.update(log_id, 'success', f'已更新 {len(matched_containers)} 个容器到 {image_tag}', old_image_id_str, image_id)
+        TaskLog.update(log_id, 'success', f'已更新 {len(matched_containers)} 个容器到 {image_tag}', old_image_id_str, _short_id(image_id))
         Target.update_status(target_id, 'success', f'成功更新到 {image_tag}')
 
-        old_image_short = next(iter(old_image_ids))[:12] if old_image_ids else '未知'
+        old_image_short = _short_id(next(iter(old_image_ids))) if old_image_ids else '未知'
         notifier.notify_update_success(target_name, old_image_short, image_tag)
 
     except Exception as e:
