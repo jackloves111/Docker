@@ -21,7 +21,7 @@
 
       <div class="hint-text" v-if="hint">{{ hint }}</div>
 
-      <el-table :data="entries" border class="env-table" v-loading="loading">
+      <el-table :data="nonAdvancedEntries" border class="env-table" v-loading="loading">
         <el-table-column label="Key" width="180" min-width="180">
           <template #default="{ row }">
             <code class="key-code">{{ row.key }}</code>
@@ -40,7 +40,7 @@
             </template>
             <template v-else-if="specialOptions[row.key]">
               <div class="value-select-input">
-                <el-select v-model="row.editingValue" @change="onSpecialChange(row)" :disabled="isAdvanced(row.key) && !advancedMode">
+                <el-select v-model="row.editingValue" @change="onSpecialChange(row)">
                   <el-option v-for="opt in specialOptions[row.key]" :key="opt.val" :label="opt.label" :value="opt.val" />
                   <el-option label="自定义" value="__custom__" />
                 </el-select>
@@ -48,10 +48,49 @@
               </div>
             </template>
             <template v-else-if="isBoolValue(row.value)">
-              <el-switch v-model="row.boolValue" :disabled="isAdvanced(row.key) && !advancedMode" />
+              <el-switch v-model="row.boolValue" />
             </template>
             <template v-else>
-              <el-input v-model="row.editingValue" :disabled="isAdvanced(row.key) && !advancedMode" />
+              <el-input v-model="row.editingValue" />
+            </template>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="section-divider" v-if="advancedEntries.length">
+        <span class="divider-text">高级配置</span>
+      </div>
+
+      <el-table :data="advancedEntries" border class="env-table" v-loading="loading">
+        <el-table-column label="Key" width="180" min-width="180">
+          <template #default="{ row }">
+            <code class="key-code">{{ row.key }}</code>
+          </template>
+        </el-table-column>
+        <el-table-column label="说明" min-width="150">
+          <template #default="{ row }">
+            <span :class="isImportant(row.key) ? 'text-danger' : 'text-secondary'">{{ row.desc }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Value" min-width="300">
+          <template #default="{ row }">
+            <template v-if="isAutoUpdateKey(row.key)">
+              <span class="text-secondary">{{ row.value }}</span>
+            </template>
+            <template v-else-if="specialOptions[row.key]">
+              <div class="value-select-input">
+                <el-select v-model="row.editingValue" @change="onSpecialChange(row)" :disabled="!advancedMode">
+                  <el-option v-for="opt in specialOptions[row.key]" :key="opt.val" :label="opt.label" :value="opt.val" />
+                  <el-option label="自定义" value="__custom__" />
+                </el-select>
+                <el-input v-if="row.showCustomInput" v-model="row.customValue" class="custom-input" placeholder="自定义值" />
+              </div>
+            </template>
+            <template v-else-if="isBoolValue(row.value)">
+              <el-switch v-model="row.boolValue" :disabled="!advancedMode" />
+            </template>
+            <template v-else>
+              <el-input v-model="row.editingValue" :disabled="!advancedMode" />
             </template>
           </template>
         </el-table-column>
@@ -136,6 +175,14 @@ export default {
 
     const statusClass = computed(() => {
       return status.value && status.value.includes('失败') ? 'text-danger' : 'text-secondary'
+    })
+
+    const nonAdvancedEntries = computed(() => {
+      return entries.value.filter(e => !isAdvanced(e.key))
+    })
+
+    const advancedEntries = computed(() => {
+      return entries.value.filter(e => isAdvanced(e.key))
     })
 
     const isImportant = (key) => IMPORTANT_KEYS.has(key)
@@ -284,6 +331,8 @@ export default {
       autoUpdateDesired,
       showWarning,
       specialOptions,
+      nonAdvancedEntries,
+      advancedEntries,
       isImportant,
       isAutoUpdateKey,
       isAdvanced,
@@ -362,6 +411,24 @@ export default {
 }
 .custom-input {
   max-width: 300px;
+}
+.section-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0 12px;
+  gap: 12px;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #dcdfe6;
+}
+.divider-text {
+  font-size: 13px;
+  color: #909399;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
