@@ -83,6 +83,12 @@ def update_target(target_id):
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     logger.debug(f"[API] 更新字段: {update_data}")
 
+    if 'image_tag' in update_data and update_data['image_tag'] != target.get('image_tag'):
+        import time
+        new_name = f"{update_data['image_tag'].replace(':', '_').replace('/', '_')}_{int(time.time())}"
+        update_data['name'] = new_name
+        logger.debug(f"[API] image_tag 已变更，同步更新 name: {new_name}")
+
     try:
         Target.update(target_id, **update_data)
         logger.info(f"[API] 目标 {target_id} 更新成功")
