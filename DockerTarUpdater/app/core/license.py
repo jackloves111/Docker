@@ -1,6 +1,5 @@
 import os
 import hashlib
-import base64
 
 LICENSE_SALT = "NaS_Tools_2024_Salt_KEY"
 UUID_PATH = "/host_uuid"
@@ -17,8 +16,7 @@ def get_host_uuid():
 
 
 def generate_signature(uuid):
-    encoded = base64.b64encode(f"{uuid}{LICENSE_SALT}".encode()).decode()
-    signature = hashlib.sha256(encoded.encode()).hexdigest()
+    signature = hashlib.sha256(f"{uuid}{LICENSE_SALT}".encode()).hexdigest()
     return signature
 
 

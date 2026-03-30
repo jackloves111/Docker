@@ -7,3 +7,4 @@ app/core/__pycache__
 app/db/__pycache__
 app/models/__pycache__
 app/utils/__pycache__
+run.sh
