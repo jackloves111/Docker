@@ -41,14 +41,6 @@ def create_app():
         tz = pytz.timezone('Asia/Shanghai')
     time.tzset()
 
-    from app.core.license import verify_license, get_host_uuid
-    valid, msg = verify_license()
-    if not valid:
-        print(f"[授权] {msg}，程序退出")
-        import sys
-        sys.exit(1)
-    print(f"[授权] {msg}，继续启动...")
-
     app = Flask(__name__)
     _app = app
 
