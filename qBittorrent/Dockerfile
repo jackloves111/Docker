@@ -10,6 +10,7 @@ RUN apk add --no-cache ca-certificates cmake build-base boost-dev wget samurai q
 && wget -P /tmp/qbbuild https://github.com/c0re100/qBittorrent-Enhanced-Edition/archive/release-${QBITTORRENT_EE_VER}.zip \
 && unzip -q /tmp/qbbuild/release-${QBITTORRENT_EE_VER}.zip -d /tmp/qbbuild \
 && cd /tmp/qbbuild/qBittorrent-Enhanced-Edition-release-${QBITTORRENT_EE_VER} \
+&& sed -i 's/runExternalProgram(pref->getAutoRun.*Program().trimmed(), torrent);/;/g' src/app/application.cpp \
 && cmake -B build-nox -G Ninja -DCMAKE_BUILD_TYPE=Release -DSTACKTRACE=OFF -DQT6=ON -DGUI=OFF \
 && cmake --build build-nox -j $(nproc) \
 && cmake --install build-nox \
@@ -19,6 +20,7 @@ RUN apk add --no-cache ca-certificates cmake build-base boost-dev wget samurai q
 && wget -P /tmp/qbbuild https://github.com/qbittorrent/qBittorrent/archive/release-${QBITTORRENT_VER}.zip \
 && unzip -q /tmp/qbbuild/release-${QBITTORRENT_VER}.zip -d /tmp/qbbuild \
 && cd /tmp/qbbuild/qBittorrent-release-${QBITTORRENT_VER} \
+&& sed -i 's/runExternalProgram(pref->getAutoRun.*Program().trimmed(), torrent);/;/g' src/app/application.cpp \
 && cmake -B build-nox -G Ninja -DCMAKE_BUILD_TYPE=Release -DSTACKTRACE=OFF -DQT6=ON -DGUI=OFF \
 && cmake --build build-nox -j $(nproc) \
 && cmake --install build-nox \
