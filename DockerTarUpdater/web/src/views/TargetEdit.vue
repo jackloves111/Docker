@@ -106,11 +106,28 @@ export default {
       enabled: true
     })
 
-    const rules = {
+    const rules = computed(() => ({
       tar_url: [{ required: true, message: '请输入 Tar URL', trigger: 'blur' }],
       image_tag: [{ required: true, message: '请输入镜像标签', trigger: 'blur' }],
-      schedule_value: [{ required: true, message: '请输入调度值', trigger: 'blur' }]
-    }
+      schedule_value: [
+        { required: true, message: '请输入调度值', trigger: 'blur' },
+        ...(form.value.schedule_type === 'interval' ? [
+          {
+            validator: (_rule, value, callback) => {
+              const v = Number(value)
+              if (!Number.isInteger(v) || v <= 0) {
+                callback(new Error('请输入正整数（小时）'))
+              } else if (v < 24) {
+                callback(new Error('间隔不得低于 24 小时'))
+              } else {
+                callback()
+              }
+            },
+            trigger: 'blur'
+          }
+        ] : [])
+      ]
+    }))
 
     const loadTarget = async () => {
       if (!route.params.id) return
