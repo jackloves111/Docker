@@ -3,7 +3,7 @@ from app.utils.response import success, error
 from app.models.target import Target
 from app.models.task import TaskLog
 from app.utils.docker_client import get_container_info, list_containers, get_containers_by_image
-from app.core.scheduler import add_job, remove_job
+from app.core.scheduler import add_job, remove_job, validate_schedule
 from app.core.engine import trigger_upgrade
 import threading
 import logging
@@ -45,12 +45,18 @@ def create_target():
         logger.warning("[API] 创建目标失败: 缺少必填字段")
         return error('缺少必填字段')
 
+    schedule_type = data.get('schedule_type', 'interval')
+    schedule_value = data.get('schedule_value', '24')
+    err_msg, err_code = validate_schedule(schedule_type, schedule_value)
+    if err_msg:
+        return error(err_msg)
+
     try:
         target_id = Target.create(
             tar_url=tar_url,
             image_tag=image_tag,
-            schedule_type=data.get('schedule_type', 'interval'),
-            schedule_value=data.get('schedule_value', '360'),
+            schedule_type=schedule_type,
+            schedule_value=schedule_value,
             url_type=data.get('url_type', 'direct')
         )
 
@@ -82,6 +88,13 @@ def update_target(target_id):
     allowed_fields = ['tar_url', 'image_tag', 'schedule_type', 'schedule_value', 'enabled']
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     logger.debug(f"[API] 更新字段: {update_data}")
+
+    if 'schedule_type' in update_data or 'schedule_value' in update_data:
+        st = update_data.get('schedule_type', target.get('schedule_type', 'interval'))
+        sv = update_data.get('schedule_value', target.get('schedule_value', '24'))
+        err_msg, err_code = validate_schedule(st, sv)
+        if err_msg:
+            return error(err_msg)
 
     if 'image_tag' in update_data and update_data['image_tag'] != target.get('image_tag'):
         import time

@@ -15,6 +15,24 @@
       style="margin-bottom: 20px;"
     />
 
+    <el-alert
+      v-if="form.schedule_type !== 'manual'"
+      title="最低更新频次限制"
+      type="info"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    >
+      <template #default>
+        <p>为防止更新过于频繁：</p>
+        <ul style="margin: 4px 0 0 16px; padding: 0;">
+          <li>间隔模式：最低 24 小时（输入单位为<strong>小时</strong>）</li>
+          <li>CRON 模式：表达式执行间隔不得低于 24 小时</li>
+          <li>低于最低频次的值将被后端自动拦截</li>
+        </ul>
+      </template>
+    </el-alert>
+
     <el-card>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="140px">
         <el-form-item label="Tar URL" prop="tar_url">
@@ -41,8 +59,8 @@
         </el-form-item>
 
         <el-form-item label="调度值" prop="schedule_value" v-if="form.schedule_type !== 'manual'">
-          <el-input v-if="form.schedule_type === 'interval'" v-model="form.schedule_value" placeholder="分钟数, 例如: 360">
-            <template #append>分钟</template>
+          <el-input v-if="form.schedule_type === 'interval'" v-model="form.schedule_value" placeholder="小时数, 例如: 24">
+            <template #append>小时</template>
           </el-input>
           <el-input v-else v-model="form.schedule_value" placeholder="0 2 * * *">
             <template #append>Cron 表达式</template>
@@ -84,7 +102,7 @@ export default {
       url_type: 'direct',
       image_tag: '',
       schedule_type: 'interval',
-      schedule_value: '360',
+      schedule_value: '24',
       enabled: true
     })
 
