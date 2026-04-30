@@ -117,7 +117,7 @@ def run_upgrade_task(target_id):
         
         if recreate_errors:
             error_msg = "; ".join(recreate_errors)
-            TaskLog.update(log_id, 'failed', f"部分/全部重建失败: {error_msg}", old_image_id_str, _short_id(image_id))
+            TaskLog.update(log_id, 'failed', f"部分/全部重建失败: {error_msg}", old_image_id_str, None)
             Target.update_status(target_id, 'failed', f"重建失败: {error_msg}")
             notifier.notify_update_failed(target_name, f"重建失败: {error_msg}")
             cleanup.cleanup_target_downloads(target_name, download_config.get('temp_dir', ''))
