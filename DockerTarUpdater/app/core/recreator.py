@@ -108,22 +108,26 @@ class Recreater:
             'detach': True,
         }
 
-        # 端口映射
-        port_bindings = host_config.get('PortBindings') or {}
-        ports = {}
-        for container_port, bindings in port_bindings.items():
-            if bindings:
-                bind_list = []
-                for b in bindings:
-                    host_ip = b.get('HostIp')
-                    host_port = b.get('HostPort')
-                    if host_ip:
-                        bind_list.append((host_ip, host_port))
-                    else:
-                        bind_list.append(host_port)
-                ports[container_port] = bind_list
-        if ports:
-            kwargs['ports'] = ports
+        # 获取网络模式（提前提取，用于决定是否跳过端口映射）
+        network_mode = host_config.get('NetworkMode')
+
+        # 端口映射（host 网络模式下不可设置端口映射，与 Docker daemon 冲突）
+        if network_mode != 'host':
+            port_bindings = host_config.get('PortBindings') or {}
+            ports = {}
+            for container_port, bindings in port_bindings.items():
+                if bindings:
+                    bind_list = []
+                    for b in bindings:
+                        host_ip = b.get('HostIp')
+                        host_port = b.get('HostPort')
+                        if host_ip:
+                            bind_list.append((host_ip, host_port))
+                        else:
+                            bind_list.append(host_port)
+                    ports[container_port] = bind_list
+            if ports:
+                kwargs['ports'] = ports
 
         # 挂载 (Mounts)
         mounts_info = attrs.get('Mounts') or []
@@ -153,8 +157,7 @@ class Recreater:
             if mounts:
                 kwargs['mounts'] = mounts
 
-        # 提取网络模式
-        network_mode = host_config.get('NetworkMode')
+        # 设置网络模式
         if network_mode and network_mode != 'default':
             kwargs['network_mode'] = network_mode
             if network_mode not in ['bridge', 'host', 'none'] and not network_mode.startswith('container:'):
