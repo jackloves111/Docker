@@ -1,0 +1,15 @@
+app:
+  host: "0.0.0.0"
+  port: 3000
+  debug: false
+  data_dir: "/config"
+  log_level: "INFO"
+  log_file: "/config/pilot.log"
+
+docker:
+  socket_path: "/var/run/docker.sock"
+
+download:
+  temp_dir: "/tmp/dockerpilot/downloads"
+  timeout: 600
+  max_retries: 3

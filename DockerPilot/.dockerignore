@@ -1,0 +1,11 @@
+node_modules
+__pycache__
+*.pyc
+.git
+.gitignore
+.vscode
+.idea
+*.md
+data
+web/node_modules
+web/.cache

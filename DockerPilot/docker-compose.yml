@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  dockerpilot:
+    build: .
+    container_name: dockerpilot
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config:/config
+    environment:
+      - DOCKER_SOCKET=/var/run/docker.sock
+    restart: unless-stopped
