@@ -46,7 +46,7 @@ class ReorderRequest(BaseModel):
 
 class ExecuteRequest(BaseModel):
     profile_id: Optional[int] = None
-    overrides: Dict[str, str] = {}
+    overrides: Dict[str, str] = {}\n    auto_replace: bool = False  # Auto-replace containers after pull/load
 
 
 @router.get("")
@@ -317,6 +317,7 @@ def execute_batch(group_id: int, data: ExecuteRequest):
 def get_batch_executions(group_id: int, limit: int = 20):
     executions = Deployment.get_by_batch(group_id, limit)
     return success(executions)
+
 
 
 
