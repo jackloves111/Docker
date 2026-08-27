@@ -46,7 +46,8 @@ class ReorderRequest(BaseModel):
 
 class ExecuteRequest(BaseModel):
     profile_id: Optional[int] = None
-    overrides: Dict[str, str] = {}\n    auto_replace: bool = False  # Auto-replace containers after pull/load
+    overrides: Dict[str, str] = {}
+    auto_replace: bool = False  # Auto-replace containers after pull/load
 
 
 @router.get("")
