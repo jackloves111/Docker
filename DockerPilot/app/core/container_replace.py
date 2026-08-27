@@ -1,30 +1,18 @@
 """
 Container Replace - Replace containers with new images
-Using docker inspect whitelist approach (like WatchTower)
+Using WatchTower's difference calculation approach:
+  Container Config - Image Default Config = User Overrides
 """
 
+import os
 import logging
 import docker
 from docker.errors import NotFound, APIError
 
 logger = logging.getLogger(__name__)
 
-# Parameters to extract from docker inspect (whitelist)
-EXTRACT_CONFIG_KEYS = {
-    'Config': ['Env', 'Hostname', 'Tty', 'OpenStdin', 'StdinOnce', 'Cmd', 'Entrypoint'],
-    'HostConfig': [
-        'PortBindings', 'NetworkMode', 'RestartPolicy',
-        'Privileged', 'CapAdd', 'CapDrop', 'Devices',
-        'Memory', 'MemorySwap', 'CpuShares', 'CpusetCpus',
-        'CpuPeriod', 'CpuQuota', 'IpcMode', 'PidMode',
-        'Sysctls', 'ExtraHosts', 'Ulimits', 'SecurityOpt',
-        'ReadonlyRootfs', 'ShmSize', 'OomScoreAdj',
-    ],
-}
-
 
 def get_client():
-    import os
     socket_path = os.environ.get("DOCKER_SOCKET", "/var/run/docker.sock")
     return docker.DockerClient(base_url=f"unix://{socket_path}")
 
@@ -33,11 +21,9 @@ def find_containers_by_image(image_tag: str) -> list:
     """Find all containers using a specific image tag"""
     try:
         client = get_client()
-        # Get all containers
         containers = client.containers.list(all=True)
         result = []
         for c in containers:
-            # Check if container uses this image
             container_image = c.image.tags[0] if c.image.tags else str(c.image.short_id)
             if container_image == image_tag:
                 result.append({
@@ -53,28 +39,88 @@ def find_containers_by_image(image_tag: str) -> list:
         return []
 
 
+def slice_subtract(container_list, image_list):
+    """Remove image defaults from container values (WatchTower approach)"""
+    if not container_list or not image_list:
+        return container_list or []
+    return [x for x in container_list if x not in image_list]
+
+
+def map_subtract(container_map, image_map):
+    """Remove image defaults from container values"""
+    if not container_map or not image_map:
+        return container_map or {}
+    return {k: v for k, v in container_map.items() if k not in image_map}
+
+
 def extract_container_config(container) -> dict:
-    """Extract container configuration using whitelist approach"""
+    """
+    Extract container configuration using WatchTower's difference approach:
+    Container Config - Image Default Config = User Overrides
+    """
     try:
         attrs = container.attrs
         config = attrs.get('Config', {})
         host_config = attrs.get('HostConfig', {})
 
+        # Get image config for comparison
+        try:
+            image_inspect = client.api.inspect_image(config.get('Image', ''))
+            image_config = image_inspect.get('Config', {})
+        except:
+            image_config = {}
+
         create_kwargs = {}
 
-        # Extract from Config
-        for key in EXTRACT_CONFIG_KEYS.get('Config', []):
-            if key in config and config[key] is not None:
-                create_kwargs[key] = config[key]
+        # --- Config section (WatchTower logic) ---
 
-        # Extract from HostConfig
-        for key in EXTRACT_CONFIG_KEYS.get('HostConfig', []):
-            if key in host_config and host_config[key] is not None:
-                create_kwargs[key] = host_config[key]
+        # WorkingDir: clear if same as image default
+        if config.get('WorkingDir') == image_config.get('WorkingDir'):
+            create_kwargs['working_dir'] = ''
+        elif config.get('WorkingDir'):
+            create_kwargs['working_dir'] = config['WorkingDir']
 
-        # Convert PortBindings to docker format
-        if 'PortBindings' in create_kwargs:
-            port_bindings = create_kwargs.pop('PortBindings')
+        # User: clear if same as image default
+        if config.get('User') == image_config.get('User'):
+            create_kwargs['user'] = ''
+        elif config.get('User'):
+            create_kwargs['user'] = config['User']
+
+        # Entrypoint: clear if same as image default
+        container_entrypoint = config.get('Entrypoint') or []
+        image_entrypoint = image_config.get('Entrypoint') or []
+        if container_entrypoint == image_entrypoint:
+            create_kwargs['entrypoint'] = None
+        elif container_entrypoint:
+            create_kwargs['entrypoint'] = container_entrypoint
+
+        # Cmd: clear if same as image default (and Entrypoint is also same)
+        container_cmd = config.get('Cmd') or []
+        image_cmd = image_config.get('Cmd') or []
+        if container_entrypoint == image_entrypoint and container_cmd == image_cmd:
+            create_kwargs['command'] = None
+        elif container_cmd:
+            create_kwargs['command'] = container_cmd
+
+        # Env: subtract image env vars (only keep user overrides)
+        container_env = config.get('Env') or []
+        image_env = image_config.get('Env') or []
+        env_overrides = slice_subtract(container_env, image_env)
+        if env_overrides:
+            create_kwargs['environment'] = env_overrides
+
+        # Labels: subtract image labels (only keep user overrides)
+        container_labels = config.get('Labels') or {}
+        image_labels = image_config.get('Labels') or {}
+        labels_overrides = map_subtract(container_labels, image_labels)
+        if labels_overrides:
+            create_kwargs['labels'] = labels_overrides
+
+        # --- HostConfig section ---
+
+        # PortBindings
+        port_bindings = host_config.get('PortBindings') or {}
+        if port_bindings:
             ports = {}
             for container_port, bindings in port_bindings.items():
                 if bindings:
@@ -90,7 +136,7 @@ def extract_container_config(container) -> dict:
             if ports:
                 create_kwargs['ports'] = ports
 
-        # Convert Mounts
+        # Mounts
         mounts_info = attrs.get('Mounts') or []
         if mounts_info:
             mounts = []
@@ -115,8 +161,72 @@ def extract_container_config(container) -> dict:
             if mounts:
                 create_kwargs['mounts'] = mounts
 
+        # NetworkMode
+        network_mode = host_config.get('NetworkMode')
+        if network_mode and network_mode != 'default':
+            create_kwargs['network_mode'] = network_mode
+            if network_mode not in ['bridge', 'host', 'none'] and not network_mode.startswith('container:'):
+                create_kwargs['network'] = network_mode
+        else:
+            networks = attrs.get('NetworkSettings', {}).get('Networks', {})
+            if networks:
+                create_kwargs['network'] = list(networks.keys())[0]
+
+        # RestartPolicy
+        restart_policy = host_config.get('RestartPolicy')
+        if restart_policy and restart_policy.get('Name') and restart_policy.get('Name') != 'no':
+            create_kwargs['restart_policy'] = restart_policy
+
+        # Privileged
+        if host_config.get('Privileged'):
+            create_kwargs['privileged'] = True
+
+        # CapAdd / CapDrop
+        if host_config.get('CapAdd'):
+            create_kwargs['cap_add'] = host_config['CapAdd']
+        if host_config.get('CapDrop'):
+            create_kwargs['cap_drop'] = host_config['CapDrop']
+
+        # Devices
+        devices = []
+        for dev in host_config.get('Devices') or []:
+            host_path = dev.get('PathOnHost', '')
+            container_path = dev.get('PathInContainer', '')
+            perms = dev.get('CgroupPermissions', '')
+            if host_path and container_path:
+                devices.append(f"{host_path}:{container_path}:{perms}")
+        if devices:
+            create_kwargs['devices'] = devices
+
+        # Resource limits
+        if host_config.get('Memory'):
+            create_kwargs['mem_limit'] = host_config['Memory']
+        if host_config.get('MemorySwap'):
+            create_kwargs['memswap_limit'] = host_config['MemorySwap']
+        if host_config.get('CpuShares'):
+            create_kwargs['cpu_shares'] = host_config['CpuShares']
+        if host_config.get('CpusetCpus'):
+            create_kwargs['cpuset_cpus'] = host_config['CpusetCpus']
+        if host_config.get('CpuPeriod'):
+            create_kwargs['cpu_period'] = host_config['CpuPeriod']
+        if host_config.get('CpuQuota'):
+            create_kwargs['cpu_quota'] = host_config['CpuQuota']
+
+        # Other settings
+        if host_config.get('IpcMode'):
+            create_kwargs['ipc_mode'] = host_config['IpcMode']
+        if host_config.get('PidMode'):
+            create_kwargs['pid_mode'] = host_config['PidMode']
+        if host_config.get('Sysctls'):
+            create_kwargs['sysctls'] = host_config['Sysctls']
+        if host_config.get('ExtraHosts'):
+            create_kwargs['extra_hosts'] = host_config['ExtraHosts']
+
         # Set detach mode
         create_kwargs['detach'] = True
+
+        # Remove None values
+        create_kwargs = {k: v for k, v in create_kwargs.items() if v is not None}
 
         return create_kwargs
 
@@ -128,7 +238,7 @@ def extract_container_config(container) -> dict:
 def replace_container(container_id: str, new_image_tag: str) -> dict:
     """
     Replace a container with a new image
-    Returns dict with success status and details
+    Uses WatchTower's difference calculation approach
     """
     try:
         client = get_client()
@@ -144,12 +254,12 @@ def replace_container(container_id: str, new_image_tag: str) -> dict:
 
         logger.info(f"[Replace] Replacing container '{old_name}' ({old_image}) with {new_image_tag}")
 
-        # Extract configuration
+        # Extract configuration using difference approach
         create_kwargs = extract_container_config(old_container)
         create_kwargs['image'] = new_image_tag
         create_kwargs['name'] = old_name
 
-        logger.info(f"[Replace] Extracted config: {list(create_kwargs.keys())}")
+        logger.info(f"[Replace] Extracted config keys: {list(create_kwargs.keys())}")
 
         # Step 1: Pull new image (if not already present)
         try:
@@ -164,7 +274,8 @@ def replace_container(container_id: str, new_image_tag: str) -> dict:
         old_container.stop(timeout=10)
 
         # Step 3: Rename old container
-        old_backup_name = f"{old_name}_backup_{int(datetime.now().timestamp())}"
+        import time
+        old_backup_name = f"{old_name}_backup_{int(time.time())}"
         logger.info(f"[Replace] Renaming to {old_backup_name}")
         old_container.rename(old_backup_name)
 
@@ -173,7 +284,7 @@ def replace_container(container_id: str, new_image_tag: str) -> dict:
             logger.info(f"[Replace] Creating new container...")
             new_container = client.containers.create(**create_kwargs)
         except Exception as e:
-            # Rollback: restore old container
+            # Rollback
             logger.error(f"[Replace] Create failed, rolling back: {e}")
             try:
                 old_container.rename(old_name)
@@ -187,7 +298,7 @@ def replace_container(container_id: str, new_image_tag: str) -> dict:
             logger.info(f"[Replace] Starting new container...")
             new_container.start()
         except Exception as e:
-            # Rollback: remove new container, restore old
+            # Rollback
             logger.error(f"[Replace] Start failed, rolling back: {e}")
             try:
                 new_container.remove(force=True)
@@ -219,10 +330,7 @@ def replace_container(container_id: str, new_image_tag: str) -> dict:
 
 
 def auto_replace_containers(old_image_tag: str, new_image_tag: str) -> dict:
-    """
-    Auto-replace all containers using the old image tag
-    Returns summary of replacements
-    """
+    """Auto-replace all containers using the old image tag"""
     containers = find_containers_by_image(old_image_tag)
 
     if not containers:
