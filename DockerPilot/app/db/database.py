@@ -115,6 +115,7 @@ class Database:
                     item_type TEXT NOT NULL CHECK(item_type IN ('image_pull', 'image_load', 'project_run')),
                     item_id INTEGER,
                     item_config TEXT DEFAULT '{}',
+                    auto_replace INTEGER DEFAULT 0,
                     sort_order INTEGER DEFAULT 0,
                     FOREIGN KEY (group_id) REFERENCES batch_group(id) ON DELETE CASCADE
                 )
@@ -164,6 +165,22 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            # Settings - key-value store for app settings
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Migration: add auto_replace column to batch_item if missing
+            cursor.execute("PRAGMA table_info(batch_item)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'auto_replace' not in columns:
+                cursor.execute("ALTER TABLE batch_item ADD COLUMN auto_replace INTEGER DEFAULT 0")
+                logger.info("[DB] Migration: added auto_replace column to batch_item")
 
             logger.info(f"[DB] Database initialized at {self.db_path}")
 

@@ -44,6 +44,12 @@
                       {{ getItemLabel(item.item_type) }}
                     </a-tag>
                     <span style="flex: 1;">{{ getItemDisplayName(item) }}</span>
+                    <a-tooltip v-if="item.auto_replace" title="已开启：更新后自动重建容器">
+                      <a-tag color="green" size="small" style="margin-right: 8px; cursor: pointer;" @click="toggleItemAutoReplace(record, item)">🔄 自动更新</a-tag>
+                    </a-tooltip>
+                    <a-tooltip v-else title="点击开启自动更新">
+                      <a-tag size="small" style="margin-right: 8px; cursor: pointer; color: #999;" @click="toggleItemAutoReplace(record, item)">手动更新</a-tag>
+                    </a-tooltip>
                     <a-button type="link" danger size="small" @click="deleteItem(record, item.id)">
                       删除
                     </a-button>
@@ -64,6 +70,7 @@
               <span v-for="(item, idx) in (record.items || []).slice(0, 3)" :key="item.id">
                 <a-tag :color="getItemColor(item.item_type)" size="small">
                   {{ getItemLabel(item.item_type) }} {{ getItemDisplayName(item) }}
+                  <template v-if="item.auto_replace">🔄</template>
                 </a-tag>
               </span>
               <span v-if="(record.items || []).length > 3" style="color: #999; margin-left: 4px;">
@@ -146,12 +153,6 @@
         @update:valid="(val) => executeValid = val"
       />
 
-      <a-divider style="margin: 12px 0" />
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <a-switch v-model:checked="executeAutoReplace" />
-        <span style="color: #666;">拉取/加载后自动替换使用旧镜像的容器</span>
-      </div>
-
       <a-divider>组合内容</a-divider>
       <a-list :dataSource="executingBatch?.items || []" size="small">
         <template #renderItem="{ item, index }">
@@ -162,6 +163,9 @@
                   {{ getItemLabel(item.item_type) }}
                 </a-tag>
                 <span style="margin-left: 8px">{{ index + 1 }}. {{ getItemDisplayName(item) }}</span>
+                <a-tooltip v-if="item.auto_replace" title="自动更新已开启">
+                  <a-tag color="green" size="small" style="margin-left: 8px;">🔄 自动更新</a-tag>
+                </a-tooltip>
               </template>
             </a-list-item-meta>
           </a-list-item>
@@ -196,11 +200,19 @@
               </a-select-option>
             </a-select>
           </a-form-item>
+          <a-form-item label="拉取后自动更新容器">
+            <a-switch v-model:checked="itemForm.auto_replace" />
+            <span style="margin-left: 8px; color: #666;">如有容器使用旧版本镜像，自动重建</span>
+          </a-form-item>
         </template>
 
         <template v-if="itemForm.item_type === 'image_load'">
           <a-form-item label="下载地址" required>
             <a-input v-model:value="itemForm.config.url" placeholder="https://example.com/image.tar" />
+          </a-form-item>
+          <a-form-item label="加载后自动更新容器">
+            <a-switch v-model:checked="itemForm.auto_replace" />
+            <span style="margin-left: 8px; color: #666;">如有容器使用旧版本镜像，自动重建</span>
           </a-form-item>
         </template>
 
@@ -281,7 +293,6 @@ const executingBatch = ref(null)
 const executeForm = ref({ profile_id: null })
 const executeOverrides = ref({})
 const executeValid = ref(true)
-const executeAutoReplace = ref(false)
 const batchRequiredVars = ref([])
 
 // Result modal
@@ -299,6 +310,7 @@ const itemForm = ref({
   item_type: 'image_pull',
   item_id: null,
   config: {},
+  auto_replace: false,
 })
 
 const columns = [
@@ -517,6 +529,7 @@ const showAddItemModal = (batch) => {
     item_type: 'image_pull',
     item_id: null,
     config: {},
+    auto_replace: false,
   }
   addItemModalVisible.value = true
 }
@@ -528,6 +541,7 @@ const handleAddItem = async () => {
       item_type: itemForm.value.item_type,
       item_id: itemForm.value.item_id,
       item_config: itemForm.value.config,
+      auto_replace: itemForm.value.auto_replace,
       sort_order: (addingToBatch.value.items || []).length,
     }
     await batchesAPI.addItem(addingToBatch.value.id, data)
@@ -551,12 +565,23 @@ const deleteItem = async (batch, itemId) => {
   }
 }
 
+// Toggle item auto_replace
+const toggleItemAutoReplace = async (batch, item) => {
+  const newVal = item.auto_replace ? 0 : 1
+  try {
+    await batchesAPI.updateItem(batch.id, item.id, { auto_replace: newVal })
+    item.auto_replace = newVal
+    message.success(newVal ? '已开启自动更新' : '已关闭自动更新')
+  } catch (e) {
+    message.error('切换失败')
+  }
+}
+
 // Execute
 const showExecuteModal = (batch) => {
   executingBatch.value = batch
   executeForm.value.profile_id = null
   executeOverrides.value = {}
-  executeAutoReplace.value = false
   batchRequiredVars.value = extractBatchVariables(batch)
   executeModalVisible.value = true
 }
@@ -567,7 +592,6 @@ const handleExecute = async () => {
     const res = await batchesAPI.execute(executingBatch.value.id, {
       profile_id: executeForm.value.profile_id,
       overrides: Object.keys(executeOverrides.value).length > 0 ? executeOverrides.value : undefined,
-      auto_replace: executeAutoReplace.value,
     })
     resultData.value = {
       success: res.data.data.success,

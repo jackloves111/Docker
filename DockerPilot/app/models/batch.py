@@ -94,23 +94,25 @@ class BatchItem:
 
     @staticmethod
     def create(group_id: int, item_type: str, item_id: int = None,
-               item_config: dict = None, sort_order: int = 0):
+               item_config: dict = None, auto_replace: bool = False, sort_order: int = 0):
         with db.get_cursor() as cursor:
             cursor.execute(
-                """INSERT INTO batch_item (group_id, item_type, item_id, item_config, sort_order)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (group_id, item_type, item_id, json.dumps(item_config or {}), sort_order)
+                """INSERT INTO batch_item (group_id, item_type, item_id, item_config, auto_replace, sort_order)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (group_id, item_type, item_id, json.dumps(item_config or {}), 1 if auto_replace else 0, sort_order)
             )
             return cursor.lastrowid
 
     @staticmethod
     def update(item_id: int, **kwargs):
-        allowed = ['item_type', 'item_id', 'item_config', 'sort_order']
+        allowed = ['item_type', 'item_id', 'item_config', 'auto_replace', 'sort_order']
         fields = {k: v for k, v in kwargs.items() if k in allowed}
         if not fields:
             return
         if 'item_config' in fields and isinstance(fields['item_config'], dict):
             fields['item_config'] = json.dumps(fields['item_config'])
+        if 'auto_replace' in fields:
+            fields['auto_replace'] = 1 if fields['auto_replace'] else 0
         with db.get_cursor() as cursor:
             set_clause = ', '.join(f"{k} = ?" for k in fields)
             values = list(fields.values()) + [item_id]

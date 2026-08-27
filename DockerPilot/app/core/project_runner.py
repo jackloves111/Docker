@@ -153,6 +153,9 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
         create_kwargs = {
             "image": image,
             "detach": detach,
+            "labels": {
+                "dockerpilot.image_source": image,  # 记录原始镜像引用（tag）
+            },
         }
         if name:
             create_kwargs["name"] = name

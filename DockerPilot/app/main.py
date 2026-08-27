@@ -66,7 +66,7 @@ app.add_middleware(
 )
 
 # Import and register routers
-from app.api import docker, registries, images, projects, profiles, batches, containers, logs
+from app.api import docker, registries, images, projects, profiles, batches, containers, logs, settings
 
 app.include_router(docker.router)
 app.include_router(registries.router)
@@ -76,6 +76,7 @@ app.include_router(profiles.router)
 app.include_router(batches.router)
 app.include_router(containers.router)
 app.include_router(logs.router)
+app.include_router(settings.router)
 
 # Serve static frontend files
 web_dir = Path(__file__).parent.parent / "web" / "dist"
@@ -95,11 +96,14 @@ else:
     logger.warning(f"[DockerPilot] Frontend build not found at {web_dir}")
 
 
+# Read port from environment variable, fall back to config file
+app_port = int(os.environ.get("APP_PORT", config['app']['port']))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "app.main:app",
         host=config['app']['host'],
-        port=config['app']['port'],
+        port=app_port,
         reload=config['app'].get('debug', False)
     )

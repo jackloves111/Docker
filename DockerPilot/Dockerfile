@@ -27,6 +27,8 @@ COPY config.yaml .
 # Copy frontend build
 COPY web/dist/ web/dist/
 
-EXPOSE 3000
+EXPOSE 20250
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]
+ENV APP_PORT=20250
+
+CMD python -m uvicorn app.main:app --host 0.0.0.0 --port ${APP_PORT}

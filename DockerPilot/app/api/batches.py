@@ -25,6 +25,13 @@ class BatchItemCreate(BaseModel):
     sort_order: int = 0
 
 
+class BatchItemUpdate(BaseModel):
+    item_type: Optional[str] = None
+    item_id: Optional[int] = None
+    item_config: Optional[dict] = None
+    sort_order: Optional[int] = None
+
+
 class BatchGroupCreate(BaseModel):
     name: str
     required_vars: List[str] = []
@@ -47,7 +54,6 @@ class ReorderRequest(BaseModel):
 class ExecuteRequest(BaseModel):
     profile_id: Optional[int] = None
     overrides: Dict[str, str] = {}
-    auto_replace: bool = False  # Auto-replace containers after pull/load
 
 
 @router.get("")
@@ -134,6 +140,18 @@ def add_batch_item(group_id: int, data: BatchItemCreate):
 def reorder_items(group_id: int, data: ReorderRequest):
     BatchItem.reorder(group_id, data.item_orders)
     return success(message="Items reordered")
+
+
+@router.put("/{group_id}/items/{item_id}")
+def update_batch_item(group_id: int, item_id: int, data: BatchItemUpdate):
+    """Update a batch item"""
+    item = BatchItem.get_by_id(item_id)
+    if not item:
+        return error("Item not found", 404)
+
+    update_data = data.dict(exclude_unset=True)
+    BatchItem.update(item_id, **update_data)
+    return success(message="Item updated")
 
 
 @router.delete("/{group_id}/items/{item_id}")
@@ -255,10 +273,27 @@ def execute_batch(group_id: int, data: ExecuteRequest):
                     else:
                         result = pull_image("", image_name)
 
+                # Auto-replace containers if enabled for this item
+                item_auto_replace = item.get('auto_replace', 0)
+                if result.get('success') and item_auto_replace and image_name:
+                    from app.core.container_replace import detect_and_update_containers
+                    update_result = detect_and_update_containers(image_name)
+                    result['update_result'] = update_result
+
             elif item_type == 'image_load':
                 # Load image from URL
                 url = item_config.get('url', '')
                 result = load_image_from_url(url)
+
+                # Auto-replace containers if enabled for this item
+                item_auto_replace = item.get('auto_replace', 0)
+                if result.get('success') and item_auto_replace:
+                    from app.core.container_replace import detect_and_update_containers
+                    for img_tag in result.get('images', []):
+                        if img_tag and img_tag != '<none>':
+                            update_result = detect_and_update_containers(img_tag)
+                            result['update_result'] = update_result
+                            break
 
             elif item_type == 'project_run':
                 # Run project

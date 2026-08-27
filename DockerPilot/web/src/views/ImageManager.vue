@@ -29,11 +29,6 @@
           </a-button>
         </a-form-item>
       </a-form>
-      <a-divider style="margin: 12px 0 0" />
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <a-switch v-model:checked="autoReplace" />
-        <span style="color: #666;">拉取后自动替换使用旧镜像的容器</span>
-      </div>
     </a-card>
 
     <!-- Load Image -->
@@ -71,10 +66,16 @@
           </div>
         </a-tab-pane>
       </a-tabs>
-      <a-divider style="margin: 12px 0 0" />
-      <div style="display: flex; align-items: center; gap: 8px;">
+    </a-card>
+
+    <!-- Auto-replace toggle -->
+    <a-card style="margin-bottom: 24px; background: #f0f5ff; border: 1px solid #d6e4ff;">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <a-switch v-model:checked="autoReplace" />
-        <span style="color: #666;">加载后自动替换使用旧镜像的容器</span>
+        <div>
+          <span style="font-weight: 500;">拉取/导入后自动更新容器</span>
+          <span style="color: #666; margin-left: 8px;">开启后，如果导入的镜像是某些容器正在使用的旧版本，自动重建这些容器</span>
+        </div>
       </div>
     </a-card>
 
@@ -126,29 +127,39 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'tags'">
-            <template v-for="tag in record.tags" :key="`${record.id}-${tag}`">
-              <a-tag
-                v-if="tag !== '<none>:<none>'"
-                :closable="record.tags.filter(t => t !== '<none>:<none>').length > 1"
-                @close="handleUntag(record.id, tag)"
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <template v-for="tag in record.tags" :key="`${record.id}-${tag}`">
+                <a-tag
+                  v-if="tag !== '<none>:<none>'"
+                  :closable="record.tags.filter(t => t !== '<none>:<none>').length > 1"
+                  @close="handleUntag(record.id, tag)"
+                >
+                  {{ tag }}
+                </a-tag>
+                <a-tag v-else color="default">
+                  {{ tag }}
+                </a-tag>
+              </template>
+              <a-button
+                v-if="record.tags[0] !== '<none>:<none>'"
+                type="link"
+                size="small"
+                @click="showTagModal(record)"
               >
-                {{ tag }}
-              </a-tag>
-              <a-tag v-else color="default">
-                {{ tag }}
-              </a-tag>
-            </template>
-            <a-button
-              v-if="record.tags[0] !== '<none>:<none>'"
-              type="link"
-              size="small"
-              @click="showTagModal(record)"
-            >
-              + 添加标签
-            </a-button>
+                + 添加标签
+              </a-button>
+            </div>
+          </template>
+          <template v-if="column.key === 'in_use'">
+            <a-tag :color="record.in_use ? 'red' : 'green'" size="small">
+              {{ record.in_use ? '使用中' : '未使用' }}
+            </a-tag>
           </template>
           <template v-if="column.key === 'size'">
             {{ formatSize(record.size) }}
+          </template>
+          <template v-if="column.key === 'created'">
+            {{ formatTime(record.created) }}
           </template>
           <template v-if="column.key === 'action'">
             <a-popconfirm
@@ -214,10 +225,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { UploadOutlined } from '@ant-design/icons-vue'
-import { registriesAPI, imagesAPI } from '../api'
+import { registriesAPI, imagesAPI, settingsAPI } from '../api'
 
 const registries = ref([])
 const images = ref([])
@@ -229,6 +240,16 @@ const loadTab = ref('url')
 const uploadFileName = ref('')
 const currentTask = ref(null)
 const taskPollTimer = ref(null)
+const autoReplace = ref(false)  // Auto-replace containers after pull/load
+
+// Persist auto_replace setting to database
+watch(autoReplace, async (newVal) => {
+  try {
+    await settingsAPI.set('auto_replace', newVal.toString())
+  } catch (e) {
+    console.error('Failed to save setting:', e)
+  }
+})
 
 const pullForm = ref({
   registry_id: null,
@@ -238,9 +259,6 @@ const pullForm = ref({
 const loadForm = ref({
   url: '',
 })
-
-// Auto-replace setting
-const autoReplace = ref(false)
 
 const resultModalVisible = ref(false)
 const resultModal = ref({
@@ -275,9 +293,10 @@ const pagination = ref({
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
-  { title: '标签', key: 'tags', width: 350 },
+  { title: '标签', key: 'tags', width: 300 },
+  { title: '状态', key: 'in_use', width: 80, sorter: true },
   { title: '大小', dataIndex: 'size', key: 'size', width: 120, sorter: true },
-  { title: '创建时间', dataIndex: 'created', key: 'created', width: 200, sorter: true },
+  { title: '创建时间', dataIndex: 'created', key: 'created', width: 180, sorter: true },
   { title: '操作', key: 'action', width: 100 },
 ]
 
@@ -286,6 +305,18 @@ const formatSize = (bytes) => {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB'
   return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB'
+}
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  try {
+    const d = new Date(timeStr)
+    if (isNaN(d.getTime())) return timeStr
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch {
+    return timeStr
+  }
 }
 
 const getTaskTypeColor = (type) => {
@@ -344,14 +375,17 @@ const sortImages = (data) => {
 const loadData = async () => {
   loadingImages.value = true
   try {
-    const [regRes, imgRes] = await Promise.all([
+    const [regRes, imgRes, settingRes] = await Promise.all([
       registriesAPI.list(),
       imagesAPI.list(),
+      settingsAPI.get('auto_replace'),
     ])
     registries.value = regRes.data.data
     const sortedImages = sortImages(imgRes.data.data)
     images.value = sortedImages
     pagination.value.total = sortedImages.length
+    // Load auto_replace setting
+    autoReplace.value = settingRes.data.data.value === 'true'
   } catch (e) {
     message.error('加载数据失败')
   }
@@ -461,6 +495,7 @@ const handleBeforeUpload = async (file) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('auto_replace', autoReplace.value ? 'true' : 'false')
 
     const res = await imagesAPI.loadUpload(formData)
     const taskId = res.data.data.task_id

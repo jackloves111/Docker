@@ -72,6 +72,7 @@ export const batchesAPI = {
   delete: (id) => api.delete(`/batches/${id}`),
   addItem: (id, data) => api.post(`/batches/${id}/items`, data),
   reorderItems: (id, data) => api.put(`/batches/${id}/items/reorder`, data),
+  updateItem: (groupId, itemId, data) => api.put(`/batches/${groupId}/items/${itemId}`, data),
   deleteItem: (id, itemId) => api.delete(`/batches/${id}/items/${itemId}`),
   preview: (id, profileId) => api.get(`/batches/${id}/execute/preview`, { params: { profile_id: profileId } }),
   execute: (id, data) => api.post(`/batches/${id}/execute`, data),
@@ -86,8 +87,15 @@ export const containersAPI = {
   stop: (id) => api.post(`/containers/${id}/stop`),
   start: (id) => api.post(`/containers/${id}/start`),
   remove: (id) => api.delete(`/containers/${id}`),
-  replace: (id, newImage) => api.post(`/containers/${id}/replace`, null, { params: { new_image: newImage } }),
+  replace: (id) => api.post(`/containers/${id}/replace`),
   findByImage: (imageTag) => api.get(`/containers/by-image/${encodeURIComponent(imageTag)}`),
+}
+
+// Settings
+export const settingsAPI = {
+  get: (key) => api.get(`/settings/${key}`),
+  getAll: () => api.get('/settings'),
+  set: (key, value) => api.put(`/settings/${key}`, { key, value }),
 }
 
 export default api

@@ -19,9 +19,14 @@
               <span>{{ record.state }}</span>
             </div>
           </template>
+          <template v-if="column.key === 'created'">
+            {{ formatTime(record.created) }}
+          </template>
           <template v-if="column.key === 'action'">
             <a-space :size="4">
               <a-button type="link" size="small" @click="showLogs(record)">日志</a-button>
+              <a-divider type="vertical" />
+              <a-button type="link" size="small" @click="showRedeployModal(record)">重新部署</a-button>
               <a-divider type="vertical" />
               <a-button v-if="record.state === 'running'" type="link" size="small" @click="handleStop(record.id)">停止</a-button>
               <a-button v-if="record.state === 'exited'" type="link" size="small" @click="handleStart(record.id)">启动</a-button>
@@ -37,6 +42,21 @@
       <a-spin :spinning="loadingLogs">
         <pre style="background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 4px; max-height: 500px; overflow-y: auto; font-size: 12px">{{ logs }}</pre>
       </a-spin>
+    </a-modal>
+
+    <!-- Redeploy Modal -->
+    <a-modal v-model:open="redeployModalVisible" title="重新部署容器" @ok="handleRedeploy" :confirmLoading="redeploying" width="500px">
+      <a-alert type="info" show-icon style="margin-bottom: 16px">
+        <template #message>确认重新部署此容器？</template>
+        <template #description>
+          将使用本地镜像 <b>{{ redeployContainer?.image }}</b> 重新创建容器（不拉取远程镜像）。如果本地已有最新版本，容器将自动更新。
+        </template>
+      </a-alert>
+      <a-descriptions :column="1" size="small" bordered>
+        <a-descriptions-item label="容器名称">{{ redeployContainer?.name }}</a-descriptions-item>
+        <a-descriptions-item label="当前镜像">{{ redeployContainer?.image }}</a-descriptions-item>
+        <a-descriptions-item label="状态">{{ redeployContainer?.state }}</a-descriptions-item>
+      </a-descriptions>
     </a-modal>
   </div>
 </template>
@@ -58,18 +78,36 @@ const logs = ref('')
 const sortInfo = ref({ field: 'name', order: 'ascend' })
 const pagination = ref({ current: 1, pageSize: 20, total: 0, showSizeChanger: true, showTotal: (total) => '共 ' + total + ' 个容器' })
 
+// Redeploy
+const redeployModalVisible = ref(false)
+const redeploying = ref(false)
+const redeployContainer = ref(null)
+const redeployImage = ref('')
+
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 100, sorter: true },
   { title: '名称', key: 'name', width: 200, sorter: true },
   { title: '镜像', dataIndex: 'image', key: 'image', width: 250, sorter: true },
   { title: '状态', key: 'status', width: 100, sorter: true },
-  { title: '创建时间', dataIndex: 'created', key: 'created', width: 200, sorter: true },
+  { title: '创建时间', dataIndex: 'created', key: 'created', width: 150, sorter: true },
   { title: '操作', key: 'action', width: 160 },
 ]
 
 const getStateColor = (state) => {
   const colors = { running: '#52c41a', exited: '#ff4d4f', paused: '#faad14', created: '#1890ff', restarting: '#faad14' }
   return colors[state] || '#d9d9d9'
+}
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  try {
+    const d = new Date(timeStr)
+    if (isNaN(d.getTime())) return timeStr
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch {
+    return timeStr
+  }
 }
 
 const filteredContainers = computed(() => {
@@ -110,6 +148,34 @@ const showLogs = async (container) => {
 const handleStop = async (id) => { try { await containersAPI.stop(id); message.success('已停止'); loadData(true) } catch (e) { message.error('停止失败') } }
 const handleStart = async (id) => { try { await containersAPI.start(id); message.success('已启动'); loadData(true) } catch (e) { message.error('启动失败') } }
 const handleRemove = async (id) => { try { await containersAPI.remove(id); message.success('已删除'); loadData(true) } catch (e) { message.error('删除失败') } }
+
+// Redeploy
+const showRedeployModal = (container) => {
+  redeployContainer.value = container
+  redeployImage.value = container.image || ''
+  redeployModalVisible.value = true
+}
+
+const handleRedeploy = async () => {
+  redeploying.value = true
+  try {
+    // Portainer style: only pass containerId, image comes from Config.Image
+    const res = await containersAPI.replace(
+      redeployContainer.value.full_id || redeployContainer.value.id
+    )
+    const result = res.data.data.result || res.data.data
+    if (result?.success) {
+      message.success('重新部署成功')
+    } else {
+      message.error(result?.error || '重新部署失败')
+    }
+    redeployModalVisible.value = false
+    loadData(true)
+  } catch (e) {
+    message.error(e.response?.data?.message || '重新部署失败')
+  }
+  redeploying.value = false
+}
 
 onMounted(() => loadData())
 onActivated(() => loadData(true))

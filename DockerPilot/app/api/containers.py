@@ -60,10 +60,13 @@ def remove_container_api(container_id: str):
 
 
 @router.post("/{container_id}/replace")
-def replace_container_api(container_id: str, new_image: str):
-    """Replace a container with a new image"""
+def replace_container_api(container_id: str):
+    """Replace a container (Portainer style: image comes from Config.Image)"""
     from app.core.container_replace import replace_container
-    result = replace_container(container_id, new_image)
+    from pydantic import BaseModel
+    class ReplacePayload(BaseModel):
+        PullImage: bool = False
+    result = replace_container(container_id)
     if result['success']:
         return success(result, result.get('message', 'Container replaced'))
     else:
