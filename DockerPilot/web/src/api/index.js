@@ -86,6 +86,8 @@ export const containersAPI = {
   stop: (id) => api.post(`/containers/${id}/stop`),
   start: (id) => api.post(`/containers/${id}/start`),
   remove: (id) => api.delete(`/containers/${id}`),
+  replace: (id, newImage) => api.post(`/containers/${id}/replace`, null, { params: { new_image: newImage } }),
+  findByImage: (imageTag) => api.get(`/containers/by-image/${encodeURIComponent(imageTag)}`),
 }
 
 export default api

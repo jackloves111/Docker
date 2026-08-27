@@ -57,3 +57,22 @@ def remove_container_api(container_id: str):
         return success(message="Container removed")
     else:
         return error("Failed to remove container")
+
+
+@router.post("/{container_id}/replace")
+def replace_container_api(container_id: str, new_image: str):
+    """Replace a container with a new image"""
+    from app.core.container_replace import replace_container
+    result = replace_container(container_id, new_image)
+    if result['success']:
+        return success(result, result.get('message', 'Container replaced'))
+    else:
+        return error(result.get('error', 'Replace failed'))
+
+
+@router.get("/by-image/{image_tag}")
+def find_containers_by_image_api(image_tag: str):
+    """Find containers using a specific image"""
+    from app.core.container_replace import find_containers_by_image
+    containers = find_containers_by_image(image_tag)
+    return success(containers)

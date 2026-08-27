@@ -29,6 +29,11 @@
           </a-button>
         </a-form-item>
       </a-form>
+      <a-divider style="margin: 12px 0 0" />
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a-switch v-model:checked="autoReplace" />
+        <span style="color: #666;">拉取后自动替换使用旧镜像的容器</span>
+      </div>
     </a-card>
 
     <!-- Load Image -->
@@ -66,6 +71,11 @@
           </div>
         </a-tab-pane>
       </a-tabs>
+      <a-divider style="margin: 12px 0 0" />
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a-switch v-model:checked="autoReplace" />
+        <span style="color: #666;">加载后自动替换使用旧镜像的容器</span>
+      </div>
     </a-card>
 
     <!-- Task Progress -->
@@ -228,6 +238,9 @@ const pullForm = ref({
 const loadForm = ref({
   url: '',
 })
+
+// Auto-replace setting
+const autoReplace = ref(false)
 
 const resultModalVisible = ref(false)
 const resultModal = ref({
@@ -408,7 +421,10 @@ const handlePull = async () => {
   }
   pulling.value = true
   try {
-    const res = await imagesAPI.pull(pullForm.value)
+    const res = await imagesAPI.pull({
+      ...pullForm.value,
+      auto_replace: autoReplace.value
+    })
     const taskId = res.data.data.task_id
     currentTask.value = { status: 'pending', progress: 0, message: '任务已创建...' }
     startPollTask(taskId)
@@ -425,7 +441,10 @@ const handleLoadUrl = async () => {
   }
   loadingUrl.value = true
   try {
-    const res = await imagesAPI.load(loadForm.value)
+    const res = await imagesAPI.load({
+      url: loadForm.value.url,
+      auto_replace: autoReplace.value
+    })
     const taskId = res.data.data.task_id
     currentTask.value = { status: 'pending', progress: 0, message: '任务已创建...' }
     startPollTask(taskId)

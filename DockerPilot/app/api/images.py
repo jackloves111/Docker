@@ -19,10 +19,12 @@ router = APIRouter(prefix="/api/images", tags=["images"])
 class PullImageRequest(BaseModel):
     registry_id: Optional[int] = None
     image_name: str  # e.g., "nginx:latest"
+    auto_replace: bool = False  # Auto-replace containers using old image
 
 
 class LoadImageRequest(BaseModel):
     url: str
+    auto_replace: bool = False  # Auto-replace containers using old image
 
 
 @router.get("")
@@ -83,11 +85,26 @@ def api_pull_image(data: PullImageRequest):
             # Record as managed image
             from app.models.managed_image import ManagedImage
             ManagedImage.add(data.image_name, "pull")
+
+            # Auto-replace containers if enabled
+            replace_result = None
+            if data.auto_replace:
+                task_mgr.update_task(tid, message="Auto-replacing containers...")
+                from app.core.container_replace import auto_replace_containers
+                replace_result = auto_replace_containers(data.image_name, data.image_name)
+
+            output = result.get('output', '')
+            if replace_result:
+                output += f"\n\n[Auto-Replace] {replace_result.get('message', '')}"
+                for r in replace_result.get('results', []):
+                    output += f"\n  - {r.get('container', '?')}: {'OK' if r.get('success') else r.get('error', 'Failed')}"
+
             task_mgr.update_task(
                 tid,
                 status="success",
                 progress=100,
-                output=result.get('output', ''),
+                output=output,
+                replace_result=replace_result,
                 message=f"Successfully pulled {data.image_name}"
             )
         else:
@@ -117,14 +134,38 @@ def api_load_image(data: LoadImageRequest):
         if result['success']:
             # Record loaded images as managed
             from app.models.managed_image import ManagedImage
+            loaded_images = []
             for img_tag in result.get('images', []):
                 if img_tag and img_tag != '<none>':
                     ManagedImage.add(img_tag, "load")
+                    loaded_images.append(img_tag)
+
+            # Auto-replace containers if enabled
+            replace_result = None
+            if data.auto_replace and loaded_images:
+                task_mgr.update_task(tid, message="Auto-replacing containers...")
+                from app.core.container_replace import auto_replace_containers
+                for img_tag in loaded_images:
+                    r = auto_replace_containers(img_tag, img_tag)
+                    if replace_result is None:
+                        replace_result = r
+                    else:
+                        replace_result['replaced'] += r.get('replaced', 0)
+                        replace_result['failed'] += r.get('failed', 0)
+                        replace_result['results'] = replace_result.get('results', []) + r.get('results', [])
+
+            output = result.get('output', '')
+            if replace_result:
+                output += f"\n\n[Auto-Replace] {replace_result.get('message', '')}"
+                for r in replace_result.get('results', []):
+                    output += f"\n  - {r.get('container', '?')}: {'OK' if r.get('success') else r.get('error', 'Failed')}"
+
             task_mgr.update_task(
                 tid,
                 status="success",
                 progress=100,
-                output=result.get('output', ''),
+                output=output,
+                replace_result=replace_result,
                 message=f"Successfully loaded image"
             )
         else:
