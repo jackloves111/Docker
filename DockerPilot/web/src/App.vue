@@ -23,7 +23,7 @@
           </a-menu-item>
           <a-menu-item key="projects">
             <template #icon><FolderOutlined /></template>
-            <span>项目管理</span>
+            <span>容器部署</span>
           </a-menu-item>
           <a-menu-item key="batches">
             <template #icon><RocketOutlined /></template>
@@ -89,7 +89,7 @@ const pageTitle = computed(() => {
   const titles = {
     dashboard: '控制台',
     images: '镜像管理',
-    projects: '项目管理',
+    projects: '容器部署',
     batches: '批量组合',
     containers: '容器管理',
     logs: '执行日志',

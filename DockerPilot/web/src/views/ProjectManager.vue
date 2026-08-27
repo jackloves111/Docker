@@ -1,9 +1,9 @@
 ﻿<template>
   <div>
-    <a-card title="项目管理">
+    <a-card title="容器部署">
       <template #extra>
         <a-button type="primary" @click="showCreateModal">
-          新建项目
+          新建部署
         </a-button>
       </template>
 
@@ -43,13 +43,13 @@
     <!-- Create/Edit Modal -->
     <a-modal
       v-model:open="modalVisible"
-      :title="editingProject ? '编辑项目' : '新建项目'"
+      :title="editingProject ? '编辑部署' : '新建部署'"
       @ok="handleSubmit"
       :confirmLoading="submitting"
       width="800px"
     >
       <a-form :model="form" layout="vertical">
-        <a-form-item label="项目名称" required>
+        <a-form-item label="部署名称" required>
           <a-input v-model:value="form.name" placeholder="My App" />
         </a-form-item>
         <a-form-item label="类型" required>
@@ -78,7 +78,7 @@ services:
           />
         </a-form-item>
         <a-form-item label="描述">
-          <a-input v-model:value="form.description" placeholder="项目描述" />
+          <a-input v-model:value="form.description" placeholder="部署描述" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -189,7 +189,7 @@ const editProject = (project) => {
 
 const handleSubmit = async () => {
   if (!form.value.name) {
-    message.warning('请输入项目名称')
+    message.warning('请输入部署名称')
     return
   }
   submitting.value = true
