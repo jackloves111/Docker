@@ -112,11 +112,18 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
 
         while i < len(args):
             arg = args[i]
+            # 支持 --opt=value 形式
+            eq_arg = None
+            eq_value = None
+            if arg.startswith('-') and '=' in arg:
+                eq_arg, eq_value = arg.split('=', 1)
+
             if arg == '-d' or arg == '--detach':
                 detach = True
-            elif arg == '--name' and i + 1 < len(args):
-                name = args[i + 1]
-                i += 1
+            elif eq_arg == '--name' or (arg == '--name' and i + 1 < len(args)):
+                name = eq_value if eq_arg == '--name' else args[i + 1]
+                if eq_arg != '--name':
+                    i += 1
             elif arg == '-p' and i + 1 < len(args):
                 # Parse port mapping
                 port_spec = args[i + 1]
@@ -131,12 +138,17 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
             elif arg == '-e' and i + 1 < len(args):
                 env.append(args[i + 1])
                 i += 1
-            elif arg == '--network' and i + 1 < len(args):
+            elif (arg == '--network' or arg == '--net') and i + 1 < len(args):
                 network = args[i + 1]
                 i += 1
-            elif arg == '--restart' and i + 1 < len(args):
+            elif eq_arg == '--network' or eq_arg == '--net':
+                # 支持 --network=host / --net=host
+                network = eq_value
+            elif (arg == '--restart' and i + 1 < len(args)):
                 restart_policy = {"Name": args[i + 1]}
                 i += 1
+            elif eq_arg == '--restart':
+                restart_policy = {"Name": eq_value}
             elif not arg.startswith('-'):
                 # This should be the image
                 image = arg
@@ -145,7 +157,12 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
         if not image:
             return {"success": False, "error": "No image specified"}
 
-        logger.info(f"[Runner] Creating container: name={name}, image={image}")
+        # host 网络模式下端口映射 -p 无效，忽略（Docker API 不接受 host 网络的端口绑定）
+        if network == 'host' and ports:
+            logger.info(f"[Runner] network=host, ignoring port mappings: {ports}")
+            ports = {}
+
+        logger.info(f"[Runner] Creating container: name={name}, image={image}, network={network}")
 
         if callback:
             callback(f"Creating container with image: {image}")
@@ -165,7 +182,12 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
         if env:
             create_kwargs["environment"] = env
         if network:
-            create_kwargs["network"] = network
+            # host/bridge/none 是内置网络模式，须用 network_mode 指定，
+            # 用 network 参数反而会尝试连接同名自定义网络
+            if network in ('host', 'bridge', 'none'):
+                create_kwargs["network_mode"] = network
+            else:
+                create_kwargs["network"] = network
         if restart_policy:
             create_kwargs["restart_policy"] = restart_policy
 
