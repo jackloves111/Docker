@@ -7,11 +7,14 @@
         </a-button>
       </template>
 
-      <a-table :dataSource="batches" :columns="columns" rowKey="id" :loading="loading" :pagination="false">
+      <a-table :dataSource="batches" :columns="columns" rowKey="id" :loading="loading" :pagination="false" :scroll="{ x: 640 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'name'">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="cursor: pointer; user-select: none;" @click="toggleExpand(record.id)">
+            <div
+              @click="toggleExpand(record.id)"
+              style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0;"
+            >
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 4px; background: #f0f5ff; color: #1890ff; font-size: 12px; flex-shrink: 0;">
                 {{ expandedRows.includes(record.id) ? '▼' : '▶' }}
               </span>
               <a-input
@@ -20,9 +23,10 @@
                 size="small"
                 @pressEnter="saveName(record)"
                 @blur="saveName(record)"
+                @click.stop
                 style="width: 200px;"
               />
-              <span v-else @dblclick="startEditName(record)" style="cursor: pointer;">
+              <span v-else @dblclick.stop="startEditName(record)">
                 {{ record.name }}
               </span>
             </div>
@@ -38,21 +42,23 @@
                 style="min-height: 40px;"
               >
                 <template #item="{ element: item, index }">
-                  <div class="item-row">
-                    <span class="drag-handle" style="cursor: grab; margin-right: 8px;">≡</span>
-                    <a-tag :color="getItemColor(item.item_type)" style="margin-right: 8px;">
+                  <div class="batch-item">
+                    <span class="drag-handle">≡</span>
+                    <a-tag :color="getItemColor(item.item_type)" size="small" style="flex-shrink: 0;">
                       {{ getItemLabel(item.item_type) }}
                     </a-tag>
-                    <span style="flex: 1;">{{ getItemDisplayName(item) }}</span>
-                    <a-tooltip v-if="item.auto_replace" title="已开启：更新后自动重建容器">
-                      <a-tag color="green" size="small" style="margin-right: 8px; cursor: pointer;" @click="toggleItemAutoReplace(record, item)">🔄 自动更新</a-tag>
+                    <a-tooltip :title="getItemDisplayName(item, true)" :mouseEnterDelay="0.5">
+                      <span class="batch-item-desc">{{ getItemDisplayName(item) }}</span>
                     </a-tooltip>
-                    <a-tooltip v-else title="点击开启自动更新">
-                      <a-tag size="small" style="margin-right: 8px; cursor: pointer; color: #999;" @click="toggleItemAutoReplace(record, item)">手动更新</a-tag>
-                    </a-tooltip>
-                    <a-button type="link" danger size="small" @click="deleteItem(record, item.id)">
-                      删除
-                    </a-button>
+                    <div class="batch-item-actions">
+                      <a-tooltip v-if="item.auto_replace" title="已开启：更新后自动重建容器">
+                        <a-tag color="green" size="small" style="cursor: pointer;" @click="toggleItemAutoReplace(record, item)">🔄</a-tag>
+                      </a-tooltip>
+                      <a-tooltip v-else title="点击开启自动更新">
+                        <a-tag size="small" style="cursor: pointer; color: #999;" @click="toggleItemAutoReplace(record, item)">手动</a-tag>
+                      </a-tooltip>
+                      <a-button type="link" danger size="small" @click="deleteItem(record, item.id)">删除</a-button>
+                    </div>
                   </div>
                 </template>
               </draggable>
@@ -68,10 +74,12 @@
             </div>
             <div v-else>
               <span v-for="(item, idx) in (record.items || []).slice(0, 3)" :key="item.id">
-                <a-tag :color="getItemColor(item.item_type)" size="small">
-                  {{ getItemLabel(item.item_type) }} {{ getItemDisplayName(item) }}
-                  <template v-if="item.auto_replace">🔄</template>
-                </a-tag>
+                <a-tooltip :title="getItemDisplayName(item, true)" :mouseEnterDelay="0.5">
+                  <a-tag :color="getItemColor(item.item_type)" size="small">
+                    {{ getItemLabel(item.item_type) }} {{ getItemDisplayName(item) }}
+                    <template v-if="item.auto_replace">🔄</template>
+                  </a-tag>
+                </a-tooltip>
               </span>
               <span v-if="(record.items || []).length > 3" style="color: #999; margin-left: 4px;">
                 +{{ record.items.length - 3 }}项
@@ -162,7 +170,9 @@
                 <a-tag :color="getItemColor(item.item_type)">
                   {{ getItemLabel(item.item_type) }}
                 </a-tag>
-                <span style="margin-left: 8px">{{ index + 1 }}. {{ getItemDisplayName(item) }}</span>
+                <a-tooltip :title="getItemDisplayName(item, true)" :mouseEnterDelay="0.5">
+                  <span style="margin-left: 8px">{{ index + 1 }}. {{ getItemDisplayName(item) }}</span>
+                </a-tooltip>
                 <a-tooltip v-if="item.auto_replace" title="自动更新已开启">
                   <a-tag color="green" size="small" style="margin-left: 8px;">🔄 自动更新</a-tag>
                 </a-tooltip>
@@ -194,7 +204,8 @@
             <a-input v-model:value="itemForm.config.image_name" placeholder="nginx:latest" />
           </a-form-item>
           <a-form-item label="镜像源">
-            <a-select v-model:value="itemForm.config.registry_id" placeholder="选择镜像源" allowClear>
+            <a-select v-model:value="itemForm.config.registry_id" placeholder="Docker Hub (默认)" allowClear>
+              <a-select-option :value="null">Docker Hub (默认)</a-select-option>
               <a-select-option v-for="r in registries" :key="r.id" :value="r.id">
                 {{ r.name }}
               </a-select-option>
@@ -314,10 +325,10 @@ const itemForm = ref({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '名称', key: 'name', width: 250 },
+  { title: 'ID', dataIndex: 'id', width: 60, align: 'center' },
+  { title: '名称', key: 'name', width: 200, ellipsis: true },
   { title: '包含项', key: 'items' },
-  { title: '操作', key: 'action', width: 150 },
+  { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ]
 
 const getItemColor = (type) => {
@@ -349,12 +360,16 @@ const getStepDescription = (step) => {
   return ''
 }
 
-const getItemDisplayName = (item) => {
+const getItemDisplayName = (item, full = false) => {
   const config = typeof item.item_config === 'string' ? JSON.parse(item.item_config) : item.item_config
-  if (item.item_type === 'image_pull') return config.image_name || '-'
+  if (item.item_type === 'image_pull') {
+    const registry = registries.value.find(r => r.id === config.registry_id)
+    const registryName = registry ? registry.name : 'Docker Hub'
+    return `${registryName} / ${config.image_name || '-'}`
+  }
   if (item.item_type === 'image_load') {
     const url = config.url || ''
-    return url.length > 40 ? url.substring(0, 37) + '...' : url
+    return url  // 不截断，完整显示
   }
   if (item.item_type === 'project_run') {
     const project = projects.value.find(p => p.id === item.item_id)
@@ -494,13 +509,16 @@ const confirmAddBatch = async () => {
     cancelAddBatch()
     return
   }
-  try {
-    const res = await batchesAPI.create({ name: newBatchName.value })
-    message.success('创建成功')
+  if (isAdding.value) {
+    const name = newBatchName.value
     isAdding.value = false
-    loadData()
-  } catch (e) {
-    message.error('创建失败')
+    try {
+      await batchesAPI.create({ name: name })
+      message.success('创建成功')
+      loadData()
+    } catch (e) {
+      message.error('创建失败')
+    }
   }
 }
 
@@ -610,26 +628,50 @@ onMounted(loadData)
 
 <style scoped>
 .add-row {
-  padding: 12px;
+  padding: 14px;
   border: 2px dashed #d9d9d9;
-  border-radius: 4px;
+  border-radius: 8px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  background: #fafafa;
 }
 .add-row:hover {
   border-color: #1890ff;
+  background: #e6f7ff;
 }
-.item-row {
+.batch-item {
   display: flex;
   align-items: center;
-  padding: 8px;
+  gap: 8px;
+  padding: 8px 12px;
   margin-bottom: 4px;
   background: #fafafa;
   border: 1px solid #f0f0f0;
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
 }
-.item-row:hover {
-  background: #f0f0f0;
+.batch-item:hover {
+  background: #e6f7ff;
+  border-color: #91d5ff;
+}
+.batch-item .drag-handle {
+  cursor: grab;
+  flex-shrink: 0;
+  color: #bbb;
+}
+.batch-item .batch-item-desc {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 22px;
+}
+.batch-item .batch-item-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

@@ -25,9 +25,10 @@ export const imagesAPI = {
   list: () => api.get('/images'),
   pull: (data) => api.post('/images/pull', data),
   load: (data) => api.post('/images/load', data),
-  loadUpload: (formData) => api.post('/images/load/upload', formData, {
+  loadUpload: (formData, onUploadProgress) => api.post('/images/load/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 300000,
+    onUploadProgress,
   }),
   getTask: (taskId) => api.get(`/images/tasks/${taskId}`),
   getTasks: () => api.get('/images/tasks'),

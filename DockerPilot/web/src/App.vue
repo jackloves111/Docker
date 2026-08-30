@@ -113,14 +113,50 @@ const handleMenuClick = ({ key }) => {
 <style>
 body {
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 .logo {
-  height: 32px;
+  height: 48px;
   margin: 16px;
   color: #fff;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 600;
   text-align: center;
-  line-height: 32px;
+  line-height: 48px;
+  letter-spacing: 1px;
+}
+/* Card */
+.ant-card {
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02) !important;
+}
+/* Table */
+.ant-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+.ant-table {
+  min-width: 100%;
+}
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+  font-weight: 600;
+  background: #fafafa !important;
+}
+.ant-table-tbody > tr:hover > td {
+  background: #f5f7fa !important;
+}
+/* Menu */
+.ant-menu-item:hover, .ant-menu-submenu-title:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+/* Tag */
+.ant-tag {
+  border-radius: 4px !important;
+  max-width: 100%;
+}
+/* Button */
+.ant-btn {
+  transition: all 0.2s !important;
 }
 </style>

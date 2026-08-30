@@ -92,10 +92,11 @@ def load_image_from_url(url: str, callback=None) -> dict:
 
         # Load
         if callback:
-            callback("Loading image into Docker...")
+            callback("正在将镜像加载到 Docker...")
 
         client = get_client()
-        result = client.images.load(local_path)
+        with open(local_path, 'rb') as f:
+            result = client.images.load(f)
         loaded_images = []
         for img in result:
             tags = img.tags or ["<none>"]

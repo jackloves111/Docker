@@ -31,7 +31,7 @@
 
       <a-skeleton :loading="loading" :paragraph="{ rows: 6 }" active v-if="loading" />
 
-      <a-table v-else :dataSource="filteredLogs" :columns="columns" rowKey="id" :pagination="pagination" @change="handleTableChange" :size="'middle'">
+      <a-table v-else :dataSource="filteredLogs" :columns="columns" rowKey="id" :pagination="pagination" @change="handleTableChange" :size="'middle'" :scroll="{ x: 880 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'name'">
             <span style="font-weight: 500;">{{ record.project_name || record.batch_name || '-' }}</span>
@@ -108,12 +108,12 @@ const sortInfo = ref({ field: 'started_at', order: 'descend' })
 const pagination = ref({ current: 1, pageSize: 20, total: 0, showSizeChanger: true, showTotal: (total) => '共 ' + total + ' 条记录' })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
-  { title: '名称', key: 'name', width: 200, sorter: true },
-  { title: '状态', key: 'status', width: 100, sorter: true },
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 70, sorter: true, align: 'center' },
+  { title: '名称', key: 'name', width: 200, sorter: true, ellipsis: true },
+  { title: '状态', key: 'status', width: 100, sorter: true, align: 'center' },
   { title: '步骤', key: 'steps', width: 250 },
-  { title: '开始时间', dataIndex: 'started_at', key: 'started_at', width: 180, sorter: true },
-  { title: '操作', key: 'action', width: 80 },
+  { title: '开始时间', dataIndex: 'started_at', key: 'started_at', width: 180, sorter: true, ellipsis: true },
+  { title: '操作', key: 'action', width: 80, fixed: 'right' },
 ]
 
 const getStatusColor = (status) => {

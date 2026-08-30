@@ -8,7 +8,7 @@
         </a-space>
       </template>
       <a-skeleton :loading="loading" :paragraph="{ rows: 8 }" active v-if="loading" />
-      <a-table v-else :dataSource="filteredContainers" :columns="columns" rowKey="id" :pagination="pagination" @change="handleTableChange" :size="'middle'">
+      <a-table v-else :dataSource="filteredContainers" :columns="columns" rowKey="id" :pagination="pagination" @change="handleTableChange" :size="'middle'" :scroll="{ x: 1110 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'name'">
             <span style="font-weight: 500;">{{ record.name }}</span>
@@ -85,12 +85,12 @@ const redeployContainer = ref(null)
 const redeployImage = ref('')
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 100, sorter: true },
-  { title: '名称', key: 'name', width: 200, sorter: true },
-  { title: '镜像', dataIndex: 'image', key: 'image', width: 250, sorter: true },
-  { title: '状态', key: 'status', width: 100, sorter: true },
-  { title: '创建时间', dataIndex: 'created', key: 'created', width: 150, sorter: true },
-  { title: '操作', key: 'action', width: 160 },
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 120, sorter: true, ellipsis: true },
+  { title: '名称', key: 'name', width: 200, sorter: true, ellipsis: true },
+  { title: '镜像', dataIndex: 'image', key: 'image', width: 250, sorter: true, ellipsis: true },
+  { title: '状态', key: 'status', width: 100, sorter: true, align: 'center' },
+  { title: '创建时间', dataIndex: 'created', key: 'created', width: 180, sorter: true, ellipsis: true },
+  { title: '操作', key: 'action', width: 260, fixed: 'right' },
 ]
 
 const getStateColor = (state) => {

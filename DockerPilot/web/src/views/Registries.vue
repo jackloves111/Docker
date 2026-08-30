@@ -7,7 +7,7 @@
         </a-button>
       </template>
 
-      <a-table :dataSource="registries" :columns="columns" rowKey="id" :loading="loading">
+      <a-table :dataSource="registries" :columns="columns" rowKey="id" :loading="loading" :scroll="{ x: 870 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'is_default'">
             <a-switch
@@ -76,11 +76,11 @@ const form = ref({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', width: 80 },
-  { title: '名称', dataIndex: 'name', width: 150 },
-  { title: '地址', dataIndex: 'url', width: 300 },
-  { title: '默认', key: 'is_default', width: 100 },
-  { title: '操作', key: 'action', width: 150 },
+  { title: 'ID', dataIndex: 'id', width: 70, align: 'center' },
+  { title: '名称', dataIndex: 'name', width: 150, ellipsis: true },
+  { title: '地址', dataIndex: 'url', width: 350, ellipsis: true },
+  { title: '默认', key: 'is_default', width: 100, align: 'center' },
+  { title: '操作', key: 'action', width: 200, fixed: 'right' },
 ]
 
 const loadData = async () => {

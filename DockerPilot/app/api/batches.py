@@ -250,7 +250,6 @@ def execute_batch(group_id: int, data: ExecuteRequest):
                 image_name = item_config.get('image_name', '')
 
                 if registry_id:
-                    from app.models.registry import Registry
                     registry = Registry.get_by_id(registry_id)
                     if registry:
                         result = pull_image(

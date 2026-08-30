@@ -105,6 +105,9 @@
         <div v-if="currentTask.message" style="color: #666">
           {{ currentTask.message }}
         </div>
+        <div v-if="currentTask.detail" style="color: #999; font-size: 12px; margin-top: 2px;">
+          {{ currentTask.detail }}
+        </div>
         <div v-if="currentTask.output" style="margin-top: 8px">
           <a-collapse>
             <a-collapse-panel header="详细输出">
@@ -124,6 +127,7 @@
         :loading="loadingImages"
         @change="handleTableChange"
         :pagination="pagination"
+        :scroll="{ x: 930 }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'tags'">
@@ -235,6 +239,7 @@ const images = ref([])
 const pulling = ref(false)
 const loadingUrl = ref(false)
 const loadingUpload = ref(false)
+const uploadStartTime = ref(0)
 const loadingImages = ref(false)
 const loadTab = ref('url')
 const uploadFileName = ref('')
@@ -292,12 +297,12 @@ const pagination = ref({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
-  { title: '标签', key: 'tags', width: 300 },
-  { title: '状态', key: 'in_use', width: 80, sorter: true },
-  { title: '大小', dataIndex: 'size', key: 'size', width: 120, sorter: true },
-  { title: '创建时间', dataIndex: 'created', key: 'created', width: 180, sorter: true },
-  { title: '操作', key: 'action', width: 100 },
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 120, ellipsis: true },
+  { title: '标签', key: 'tags', width: 350 },
+  { title: '状态', key: 'in_use', width: 80, sorter: true, align: 'center' },
+  { title: '大小', dataIndex: 'size', key: 'size', width: 120, sorter: true, align: 'right' },
+  { title: '创建时间', dataIndex: 'created', key: 'created', width: 180, sorter: true, ellipsis: true },
+  { title: '操作', key: 'action', width: 100, fixed: 'right' },
 ]
 
 const formatSize = (bytes) => {
@@ -305,6 +310,19 @@ const formatSize = (bytes) => {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB'
   return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB'
+}
+
+const formatSpeed = (bytesPerSec) => {
+  if (bytesPerSec < 1024) return bytesPerSec.toFixed(0) + ' B/s'
+  if (bytesPerSec < 1024 * 1024) return (bytesPerSec / 1024).toFixed(1) + ' KB/s'
+  if (bytesPerSec < 1024 * 1024 * 1024) return (bytesPerSec / 1024 / 1024).toFixed(1) + ' MB/s'
+  return (bytesPerSec / 1024 / 1024 / 1024).toFixed(2) + ' GB/s'
+}
+
+const formatDuration = (seconds) => {
+  if (seconds < 60) return Math.round(seconds) + '秒'
+  if (seconds < 3600) return Math.floor(seconds / 60) + '分' + Math.round(seconds % 60) + '秒'
+  return Math.floor(seconds / 3600) + '时' + Math.floor((seconds % 3600) / 60) + '分'
 }
 
 const formatTime = (timeStr) => {
@@ -491,15 +509,33 @@ const handleLoadUrl = async () => {
 const handleBeforeUpload = async (file) => {
   uploadFileName.value = file.name
   loadingUpload.value = true
+  uploadStartTime.value = Date.now()
 
   try {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('auto_replace', autoReplace.value ? 'true' : 'false')
 
-    const res = await imagesAPI.loadUpload(formData)
+    const res = await imagesAPI.loadUpload(formData, (progressEvent) => {
+      const loaded = progressEvent.loaded
+      const total = progressEvent.total || file.size
+      const percent = Math.round((loaded * 100) / total)
+      const elapsed = (Date.now() - uploadStartTime.value) / 1000
+      const speed = elapsed > 0 ? loaded / elapsed : 0
+      const speedStr = formatSpeed(speed)
+      const remaining = speed > 0 ? (total - loaded) / speed : 0
+      const remainStr = remaining > 0 ? formatDuration(remaining) : ''
+
+      currentTask.value = {
+        status: 'running',
+        progress: percent,
+        message: `📤 上传文件 ${percent}% — ${formatSize(loaded)} / ${formatSize(total)}`,
+        detail: `速度: ${speedStr}${remainStr ? '  |  剩余: ' + remainStr : ''}`,
+      }
+    })
+
     const taskId = res.data.data.task_id
-    currentTask.value = { status: 'pending', progress: 0, message: '任务已创建...' }
+    currentTask.value = { status: 'pending', progress: 0, message: '文件已上传，正在加载到 Docker...' }
     startPollTask(taskId)
   } catch (e) {
     message.error(e.response?.data?.message || '上传失败')

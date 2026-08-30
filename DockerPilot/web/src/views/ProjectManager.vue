@@ -7,7 +7,7 @@
         </a-button>
       </template>
 
-      <a-table :dataSource="projects" :columns="columns" rowKey="id" :loading="loading">
+      <a-table :dataSource="projects" :columns="columns" rowKey="id" :loading="loading" :scroll="{ x: 820 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'type'">
             <a-tag :color="record.type === 'compose' ? 'blue' : 'green'">
@@ -133,12 +133,12 @@ const runValid = ref(true)
 const runRequiredVars = ref([])
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', width: 80 },
-  { title: '名称', dataIndex: 'name', width: 200 },
-  { title: '类型', key: 'type', width: 120 },
-  { title: '变量', key: 'variables', width: 250 },
-  { title: '描述', dataIndex: 'description' },
-  { title: '操作', key: 'action', width: 200 },
+  { title: 'ID', dataIndex: 'id', width: 70, align: 'center' },
+  { title: '名称', dataIndex: 'name', width: 200, ellipsis: true },
+  { title: '类型', key: 'type', width: 100, align: 'center' },
+  { title: '变量', key: 'variables', width: 200 },
+  { title: '描述', dataIndex: 'description', ellipsis: true },
+  { title: '操作', key: 'action', width: 250, fixed: 'right' },
 ]
 
 const extractProjectVariables = (project) => {
