@@ -49,7 +49,9 @@ export const projectsAPI = {
   create: (data) => api.post('/projects', data),
   update: (id, data) => api.put(`/projects/${id}`, data),
   delete: (id) => api.delete(`/projects/${id}`),
-  run: (id, params) => api.post(`/projects/${id}/run`, null, { params }),
+  run: (id, params) => api.post(`/projects/${id}/run`, params.overrides || null, {
+    params: { profile_id: params.profile_id }
+  }),
   deployments: (id) => api.get(`/projects/${id}/deployments`),
   scanVariables: () => api.get('/projects/scan/variables'),
 }
