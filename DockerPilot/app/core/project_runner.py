@@ -46,6 +46,7 @@ def run_docker_command(project: dict, variables: dict, callback=None) -> dict:
             return {"success": False, "error": "Empty command"}
 
         # Resolve variables
+        logger.info(f"[Runner] variables={variables}")
         resolved_cmd = resolve_variables(command, variables)
         logger.info(f"[Runner] Executing: {resolved_cmd}")
 
@@ -169,45 +170,40 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
             create_kwargs["restart_policy"] = restart_policy
 
         # Handle volume mounts
-        mount_list = []
+        from docker.types import Mount
+        mounts = []
         for vol in volumes:
             parts = vol.split(':')
             if len(parts) >= 2:
                 source = parts[0]
                 target = parts[1]
                 read_only = len(parts) > 2 and parts[2] == 'ro'
-                mount_list.append({
-                    "Type": "bind",
-                    "Source": os.path.abspath(source),
-                    "Destination": target,
-                    "RW": not read_only
-                })
-        if mount_list:
-            # Use host_config for mounts
-            from docker.types import Mount
-            mounts = []
-            for vol in volumes:
-                parts = vol.split(':')
-                if len(parts) >= 2:
-                    source = parts[0]
-                    target = parts[1]
-                    read_only = len(parts) > 2 and parts[2] == 'ro'
-                    # 检查 bind 源路径是否存在，给出友好错误
-                    abs_source = os.path.abspath(source)
-                    if not os.path.exists(abs_source):
-                        hint = ""
-                        if "$" in source or "${" in source:
-                            hint = "。提示：路径中包含未替换的变量占位符，请检查变量名是否匹配"
-                        return {
-                            "success": False,
-                            "error": f"bind 挂载源路径不存在: {abs_source}{hint}（单文件挂载要求宿主机源文件已存在；目录挂载要求目录已存在）"
-                        }
-                    mounts.append(Mount(
-                        type="bind",
-                        source=abs_source,
-                        target=target,
-                        read_only=read_only
-                    ))
+                # bind 源路径直接使用解析后的原样路径（不做 abspath，
+                # 容器内 cwd 不是宿主机目录，abspath 会错误加上 /app 前缀）
+                # 但需显式判断：绝对路径原样用；相对路径属于宿主机相对路径，保持原样
+                if not os.path.isabs(source):
+                    logger.warning(f"[Runner] bind source '{source}' is NOT an absolute host path")
+                # 检查变量是否已全部替换（不应再残留 $ 占位符）
+                if "$" in source or "${" in source:
+                    return {
+                        "success": False,
+                        "error": f"bind 挂载源路径仍包含未替换的变量占位符: '{source}'。请检查变量名是否已正确传入解析器"
+                    }
+                # 检查源路径是否存在（单文件/目录都要求宿主上已存在）
+                if not os.path.exists(source):
+                    return {
+                        "success": False,
+                        "error": f"bind 挂载源路径不存在: '{source}'（单文件挂载要求宿主源文件已存在；目录挂载要求目录已存在）"
+                    }
+                mounts.append(Mount(
+                    type="bind",
+                    source=source,
+                    target=target,
+                    read_only=read_only
+                ))
+            else:
+                logger.warning(f"[Runner] Skip invalid volume spec: {vol}")
+        if mounts:
             create_kwargs["mounts"] = mounts
             if "volumes" in create_kwargs:
                 del create_kwargs["volumes"]
