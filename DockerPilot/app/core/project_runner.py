@@ -192,9 +192,19 @@ def _execute_docker_run(client, args: list, callback=None) -> dict:
                     source = parts[0]
                     target = parts[1]
                     read_only = len(parts) > 2 and parts[2] == 'ro'
+                    # 检查 bind 源路径是否存在，给出友好错误
+                    abs_source = os.path.abspath(source)
+                    if not os.path.exists(abs_source):
+                        hint = ""
+                        if "$" in source or "${" in source:
+                            hint = "。提示：路径中包含未替换的变量占位符，请检查变量名是否匹配"
+                        return {
+                            "success": False,
+                            "error": f"bind 挂载源路径不存在: {abs_source}{hint}（单文件挂载要求宿主机源文件已存在；目录挂载要求目录已存在）"
+                        }
                     mounts.append(Mount(
                         type="bind",
-                        source=os.path.abspath(source),
+                        source=abs_source,
                         target=target,
                         read_only=read_only
                     ))
