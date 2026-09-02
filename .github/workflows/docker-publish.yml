@@ -37,6 +37,6 @@ jobs:
           context: ./DockerPilot
           push: true
           tags: |
-            ${{ github.repository_owner }}/dockerpilot:latest
+            nobody114/dockerpilot:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
