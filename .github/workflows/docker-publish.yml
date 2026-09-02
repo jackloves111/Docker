@@ -1,4 +1,4 @@
-﻿name: Build and Push Docker Image
+name: Build and Push Docker Image
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./DockerPilot
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
